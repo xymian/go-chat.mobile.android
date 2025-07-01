@@ -2,42 +2,38 @@ package com.simulatedtez.gochat.chat.repository
 
 import ChatServiceError
 import ChatServiceManager
-import ILocalStorage
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.chat.view_model.models.ChatInfo
 import com.simulatedtez.gochat.chat.view_model.models.ChatPage
 import listeners.ChatServiceListener
 
 class ChatRepository(
+    private val chatInfo: ChatInfo,
     getMissingMessagesUsecase: GetMissingMessagesUsecase,
     acknowledgeMessagesUsecase: AcknowledgeMessagesUsecase,
     private val database: IChatStorage
 ): ChatServiceListener<Message> {
 
     private val chatService = ChatServiceManager.Builder<Message>()
-        .setSocketURL("")
-        .setUsername("")
+        .setSocketURL("ws://<host>:<port>/room/${chatInfo.chatReference}" +
+                "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}")
+        .setUsername(chatInfo.username)
+        .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setMissingMessagesCaller(getMissingMessagesUsecase)
         .setMessageAckCaller(acknowledgeMessagesUsecase)
-        .setExpectedReceivers(listOf())
         .setChatServiceListener(this)
         .build(Message.serializer())
+
+    private var chatEventListener: ChatEventListener? = null
 
     init {
         chatService.connect()
     }
 
     fun sendMessage() {
-
-    }
-
-    fun getMissingMessages() {
-
-    }
-
-    fun acknowledgeMessagesByTimestampRange(from: String, to: String) {
 
     }
 
@@ -51,26 +47,30 @@ class ChatRepository(
     }
 
     override fun onConnect() {
-        TODO("Not yet implemented")
+        chatEventListener?.onConnect()
     }
 
     override fun onDisconnect() {
-        TODO("Not yet implemented")
+        chatEventListener?.onDisconnect()
     }
 
     override fun onError(error: ChatServiceError, message: String) {
-        TODO("Not yet implemented")
+        chatEventListener?.onError("error message: $message, error type: ${error.name}")
     }
 
     override fun onSend(message: Message) {
-        TODO("Not yet implemented")
+        chatEventListener?.onSend()
     }
 
     override fun onReceive(messages: List<Message>) {
-        TODO("Not yet implemented")
+        chatEventListener?.onNewMessages(messages)
     }
 
     override fun onReceive(message: Message) {
-        TODO("Not yet implemented")
+        chatEventListener?.onNewMessage(message)
+    }
+
+    fun setChatEventListener(chatEventListener: ChatEventListener) {
+        this.chatEventListener = chatEventListener
     }
 }

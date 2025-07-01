@@ -51,6 +51,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.napier)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.livedata)
