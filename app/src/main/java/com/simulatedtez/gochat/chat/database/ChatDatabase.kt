@@ -8,6 +8,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.chat.remote.models.toMessage_db
+import com.simulatedtez.gochat.chat.remote.models.toMessages_db
 import com.simulatedtez.gochat.database.AppDatabase
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,17 +35,7 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
     }
     override suspend fun loadMessages(page: Int): List<Message> {
         return timestampsOfLastMessageInPages[page]?.let { pageNumber ->
-            messagesDao.getMessages(pageNumber, pageSize ?: PAGE_SIZE).map {
-                Message(
-                    messageReference = it.messageReference,
-                    senderUsername = it.senderUsername,
-                    receiverUsername = it.receiverUsername,
-                    textMessage = it.textMessage,
-                    chatReference = it.chatReference,
-                    messageTimestamp = it.messageTimestamp,
-                    seenByReceiver = it.seenByReceiver
-                )
-            }.sortedBy {
+            messagesDao.getMessages(pageNumber, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
                 it.messageTimestamp
             }.also {
                 if (it.isNotEmpty()) {
@@ -54,31 +46,11 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
     }
 
     override suspend fun store(message: Message) {
-        messagesDao.insertMessage(message.let {
-            Message_db(
-                messageReference = it.messageReference,
-                senderUsername = it.senderUsername,
-                receiverUsername = it.receiverUsername,
-                textMessage = it.textMessage,
-                chatReference = it.chatReference,
-                messageTimestamp = it.messageTimestamp,
-                seenByReceiver = it.seenByReceiver
-            )
-        })
+        messagesDao.insertMessage(message.toMessage_db())
     }
 
     override suspend fun store(messages: List<Message>) {
-        messagesDao.insertMessages(messages.map {
-            Message_db(
-                messageReference = it.messageReference,
-                senderUsername = it.senderUsername,
-                receiverUsername = it.receiverUsername,
-                textMessage = it.textMessage,
-                chatReference = it.chatReference,
-                messageTimestamp = it.messageTimestamp,
-                seenByReceiver = it.seenByReceiver
-            )
-        })
+        messagesDao.insertMessages(messages.toMessages_db())
     }
 
 }
@@ -93,9 +65,25 @@ data class Message_db(
     val messageTimestamp: String? = null,
     val chatReference: String? = null,
     val seenByReceiver: Boolean,
-    val createdAt: String? = null,
-    val updatedAt: String? = null
 )
+
+fun Message_db.toMessage(): Message {
+    return Message(
+        messageReference = messageReference,
+        senderUsername = senderUsername,
+        receiverUsername = receiverUsername,
+        textMessage = textMessage,
+        chatReference = chatReference,
+        messageTimestamp = messageTimestamp,
+        seenByReceiver = seenByReceiver
+    )
+}
+
+fun List<Message_db>.toMessages(): List<Message> {
+    return map {
+        it.toMessage()
+    }
+}
 
 
 @Dao

@@ -18,13 +18,15 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(
     chatInfo: ChatInfo,
-    chatDb: IChatStorage
+    chatDb: IChatStorage,
+    getMissingMessagesUsecase: GetMissingMessagesUsecase,
+    acknowledgeMessagesUsecase: AcknowledgeMessagesUsecase,
 ): ViewModel(), ChatEventListener {
 
     private val chatRepo: ChatRepository = ChatRepository(
         chatInfo,
-        GetMissingMessagesUsecase(),
-        AcknowledgeMessagesUsecase(),
+        getMissingMessagesUsecase,
+        acknowledgeMessagesUsecase,
         chatDb = chatDb,
         this
     )

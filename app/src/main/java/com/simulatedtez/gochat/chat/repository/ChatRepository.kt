@@ -19,8 +19,7 @@ class ChatRepository(
 ): ChatServiceListener<Message> {
 
     private val chatService = ChatServiceManager.Builder<Message>()
-        .setSocketURL("ws://<host>:<port>/room/${chatInfo.chatReference}" +
-                "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}")
+        .setSocketURL(chatInfo.socketURL)
         .setUsername(chatInfo.username)
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setMissingMessagesCaller(getMissingMessagesUsecase)
