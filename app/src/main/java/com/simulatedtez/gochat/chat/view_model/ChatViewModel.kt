@@ -4,19 +4,30 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simulatedtez.gochat.chat.database.IChatStorage
+import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
+import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.repository.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
+import com.simulatedtez.gochat.chat.view_model.models.ChatInfo
 import com.simulatedtez.gochat.chat.view_model.models.ChatPage
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class ChatViewModel(private val chatRepo: ChatRepository): ViewModel(), ChatEventListener {
+class ChatViewModel(
+    chatInfo: ChatInfo,
+    chatDb: IChatStorage
+): ViewModel(), ChatEventListener {
 
-    init {
-        chatRepo.setChatEventListener(this)
-    }
+    private val chatRepo: ChatRepository = ChatRepository(
+        chatInfo,
+        GetMissingMessagesUsecase(),
+        AcknowledgeMessagesUsecase(),
+        chatDb = chatDb,
+        this
+    )
 
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
@@ -24,20 +35,13 @@ class ChatViewModel(private val chatRepo: ChatRepository): ViewModel(), ChatEven
     private val _newMessage = MutableLiveData<Message>()
     val newMessage: LiveData<Message> = _newMessage
 
-    private val _newMessages = MutableLiveData<List<Message>>()
-    val newMessages: LiveData<List<Message>> = _newMessages
-
-    fun loadMessages(page: Int, size: Int) {
+    fun loadMessages(page: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            _pagedMessages.value = chatRepo.loadMessages(page, size)
+            _pagedMessages.value = chatRepo.loadMessages(page)
         }
     }
 
-    fun setChatUsername(username: String) {
-        chatRepo
-    }
-
-    override fun onSend() {
+    override fun onSend(message: Message) {
 
     }
 
@@ -55,7 +59,9 @@ class ChatViewModel(private val chatRepo: ChatRepository): ViewModel(), ChatEven
 
     override fun onNewMessages(messages: List<Message>) {
         viewModelScope.launch {
-            _newMessages.value = messages
+            messages.forEach {
+                _newMessage.value = it
+            }
         }
     }
 

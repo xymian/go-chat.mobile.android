@@ -2,6 +2,7 @@ plugins {
     kotlin("plugin.serialization") version "1.8.21"
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("com.google.devtools.ksp") version "1.9.0-1.0.13"
 }
 
 android {
@@ -51,13 +52,20 @@ android {
 }
 
 dependencies {
+    // Room components
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    // Kotlin coroutines support
+    implementation(libs.androidx.room.ktx)
+    // for annotation processing
+    implementation(libs.androidx.lifecycle.runtime.ktx.v270)
     implementation(libs.napier)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.livedata)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
-    implementation(project.files("libs/chat-library-1.1.jar"))
+    implementation(project.files("libs/chat-library-1.0.jar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

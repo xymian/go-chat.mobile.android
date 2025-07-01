@@ -22,9 +22,5 @@ data class Message(
     val chatReference: String? = null,
     @SerialName("seenByReceiver")
     val seenByReceiver: Boolean,
-    @SerialName("createdAt")
-    val createdAt: String? = null,
-    @SerialName("updatedAt")
-    val updatedAt: String? = null
 ): Message(_timestamp = messageTimestamp, _messageId = messageReference,
     _sender = senderUsername, _receiver = receiverUsername, _message = textMessage)

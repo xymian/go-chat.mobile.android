@@ -3,7 +3,7 @@ package com.simulatedtez.gochat.chat.repository
 import com.simulatedtez.gochat.chat.remote.models.Message
 
 interface ChatEventListener {
-    fun onSend()
+    fun onSend(message: Message)
     fun onConnect()
     fun onDisconnect()
     fun onError(message: String)
