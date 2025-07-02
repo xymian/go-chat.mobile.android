@@ -52,6 +52,12 @@ android {
 }
 
 dependencies {
+
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio) // CIO engine for JVM
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
     // Room components
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)

@@ -32,4 +32,17 @@ class GetMissingMessagesUsecase: ChatEndpointCaller<Message, ChatHistoryResponse
                 }
             })
     }
+
+    data class GetMissingMessagesParams(
+        val headers: Headers,
+        val params: Params
+    ) {
+        class Headers(
+            val token: String,
+        )
+        class Params(
+            val chatReference: String,
+            val yourUsername: String,
+        )
+    }
 }

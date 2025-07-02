@@ -1,55 +1,88 @@
 package com.simulatedtez.gochat.chat.remote.api_usecases
 
+import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.chat.remote.models.AckResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
-import okhttp3.Call
-import okhttp3.Callback
+import com.simulatedtez.gochat.remote.IEndpointCaller
+import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.Response
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
 import utils.ChatEndpointCaller
-import java.io.IOException
 
-class AcknowledgeMessagesUsecase: ChatEndpointCaller<List<Message>, AckResponse> {
-
-    private val client: OkHttpClient = OkHttpClient()
+class AcknowledgeMessagesUsecase(private val chatApiService: IChatApiService):
+    IAcknowledgeMessageEndpointCaller {
 
     override suspend fun call(data: List<Message>?, handler: ChatEndpointCaller.ResponseCallback<AckResponse>) {
-        val mediaType = "application/json; charset=utf-8".toMediaType()
         data?.let { messages ->
-            val sortedMessages = messages.sortedBy { it.messageTimestamp }
-            val requestBody = getAckRequestBuilder(
-                from = sortedMessages.first(), to = sortedMessages.last()).toRequestBody(mediaType)
-            client.newCall(
-                Request.Builder().url("")
-                .post(requestBody).build())
-                .enqueue(object: Callback {
-                    override fun onFailure(call: Call, e: IOException) {
-                        handler.onFailure(e)
-                    }
+            val handler1 = object : IResponseHandler<String, IResponse<String>> {
+                override fun onResponse(response: IResponse<String>) {
 
-                    override fun onResponse(call: Call, response: Response) {
-                        val res = AckResponse(
-                            data = response.body.toString(),
-                            isSuccessful = response.isSuccessful,
-                            error = response.message
-                        )
-                        handler.onResponse(res)
-                    }
-                })
+                }
+            }
+            val ackParams = getSupportData(messages.sortedBy { it.messageTimestamp })
+            call(ackParams, messages, handler1, handler)
         }
     }
 
-    private fun getAckRequestBuilder(from: Message, to: Message): String {
-        return """
-                {
-                    "username":${from.senderUsername},
-                    "chatReference":${from.chatReference},
-                    "from":${from.messageTimestamp},
-                    "to":${to.messageTimestamp}
-                }
-            """.trimIndent()
+    override suspend fun call(
+        request: AckParams,
+        data: List<Message>?,
+        handler1: IResponseHandler<String, IResponse<String>>,
+        handler2: ChatEndpointCaller.ResponseCallback<AckResponse>
+    ) {
+        val res = chatApiService.acknowledgeMessage(request)
+        handler1.onResponse(res)
+        if (res is IResponse.Success) {
+            handler2.onResponse(AckResponse(
+                data = res.data,
+                isSuccessful = true,
+                error = null
+            ))
+        } else {
+            handler2.onFailure(null)
+        }
+    }
+
+    override suspend fun call(
+        request: AckParams, handler: IResponseHandler<String, IResponse<String>>?
+    ) {
+        handler?.onResponse(chatApiService.acknowledgeMessage(request))
+    }
+
+    private fun getSupportData(messages: List<Message>): AckParams {
+        val sortedList = messages.sortedBy { it.messageTimestamp }
+        return AckParams(
+            headers = AckParams.Headers(token = ""),
+            params = AckParams.Params(
+                from = sortedList.first().messageTimestamp!!,
+                to = sortedList.last().messageTimestamp!!,
+                chatReference = "",
+                yourUsername = ""
+            )
+        )
+    }
+
+    data class AckParams(
+        val headers: Headers,
+        val params: Params
+    ) {
+        class Headers(
+            val token: String,
+        )
+
+        @Serializable
+        class Params(
+            @SerialName("from")
+            val from: String,
+            @SerialName("to")
+            val to: String,
+            @SerialName("chatReference")
+            val chatReference: String,
+            @SerialName("username")
+            val yourUsername: String,
+        )
     }
 }
