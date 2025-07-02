@@ -24,7 +24,7 @@ class GetMissingMessagesUsecase(
                 handler.onResponse(chatServiceRes)
             }
             else -> {
-                handler.onFailure(null)
+                handler.onFailure((res as IResponse.Failure<List<Message>>).exception)
             }
         }
     }

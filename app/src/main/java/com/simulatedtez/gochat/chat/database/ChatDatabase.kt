@@ -17,12 +17,10 @@ import java.util.Locale
 
 class ChatDatabase private constructor(private val messagesDao: MessagesDao): IChatStorage {
 
-    var pageSize: Int? = null
-    private var timestampsOfLastMessageInPages = hashMapOf<Int, String>(
-        1 to SimpleDateFormat(
-            "yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()
-        ).format(Date())
-    )
+    private var pageSize: Int? = null
+    private var timestampsOfLastMessageInPages = SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()
+    ).format(Date())
 
     companion object {
         private const val PAGE_SIZE = 50
@@ -33,16 +31,16 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
             }
         }
     }
-    override suspend fun loadMessages(page: Int): List<Message> {
-        return timestampsOfLastMessageInPages[page]?.let { pageNumber ->
-            messagesDao.getMessages(pageNumber, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
+    override suspend fun loadNextPage(): List<Message> {
+        return timestampsOfLastMessageInPages.let { topMessageTimestamp ->
+            messagesDao.getMessages(topMessageTimestamp, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
                 it.messageTimestamp
             }.also {
                 if (it.isNotEmpty()) {
-                    timestampsOfLastMessageInPages[page] = it.first().messageTimestamp!!
+                    timestampsOfLastMessageInPages = it.first().messageTimestamp!!
                 }
             }
-        } ?: throw Exception()
+        }
     }
 
     override suspend fun store(message: Message) {

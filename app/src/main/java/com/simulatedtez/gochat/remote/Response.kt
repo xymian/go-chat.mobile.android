@@ -2,6 +2,7 @@ package com.simulatedtez.gochat.remote
 
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 
 class Response<R>(val call: suspend () -> HttpResponse): IResponse<R> {
@@ -14,10 +15,10 @@ class Response<R>(val call: suspend () -> HttpResponse): IResponse<R> {
                 data = data
             )
         } else {
-            IResponse.Failure(reason = FailureReason.GENERIC)
+            IResponse.Failure(reason = response.status.description, response = response.bodyAsText())
         }
     } catch (e: Exception) {
-        IResponse.Failure(e, FailureReason.GENERIC, e.message)
+        IResponse.Failure(exception = e, e.message ?: "unknown reason :(")
     }
 }
 
@@ -27,12 +28,8 @@ sealed interface IResponse<R> {
     ): IResponse<R>
 
     data class Failure<R>(
-        val exception: Throwable? = null,
-        val reason: FailureReason,
+        val exception: Exception? = null,
+        val reason: String,
         val response: String? = null
     ): IResponse<R>
-}
-
-enum class FailureReason {
-    GENERIC
 }

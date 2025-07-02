@@ -37,9 +37,9 @@ class ChatViewModel(
     private val _newMessage = MutableLiveData<Message>()
     val newMessage: LiveData<Message> = _newMessage
 
-    fun loadMessages(page: Int) {
+    fun loadMessages() {
         viewModelScope.launch(Dispatchers.IO) {
-            _pagedMessages.value = chatRepo.loadMessages(page)
+            _pagedMessages.value = chatRepo.loadNextPageMessages()
         }
     }
 
