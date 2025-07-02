@@ -2,47 +2,43 @@ package com.simulatedtez.gochat.chat.remote.api_usecases
 
 import com.simulatedtez.gochat.chat.remote.models.ChatHistoryResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.Response
 import kotlinx.serialization.json.Json
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
 import utils.ChatEndpointCaller
-import java.io.IOException
+import utils.ResponseCallback
 
-class GetMissingMessagesUsecase: ChatEndpointCaller<Message, ChatHistoryResponse> {
+class GetMissingMessagesUsecase(
+    private val params: GetMissingMessagesParams,
+    private val missingMessagesEndpoint: suspend (params: GetMissingMessagesParams) -> IResponse<List<Message>>
+): ChatEndpointCaller<ChatHistoryResponse> {
 
-    private val client: OkHttpClient = OkHttpClient()
-
-    override suspend fun call(data: Message?, handler: ChatEndpointCaller.ResponseCallback<ChatHistoryResponse>) {
-        client.newCall(Request.Builder().url("").build())
-            .enqueue(object: Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    handler.onFailure(e)
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    val res = ChatHistoryResponse(
-                        data = Json.decodeFromString<List<Message>>(response.body.toString()),
-                        isSuccessful = response.isSuccessful,
-                        error = response.message,
-                    )
-                    handler.onResponse(res)
-                }
-            })
+    override suspend fun call(handler: ResponseCallback<ChatHistoryResponse>) {
+        when (val res = missingMessagesEndpoint(params)) {
+            is IResponse.Success -> {
+                val chatServiceRes = ChatHistoryResponse(
+                    data = res.data,
+                    isSuccessful = true,
+                    error = null,
+                )
+                handler.onResponse(chatServiceRes)
+            }
+            else -> {
+                handler.onFailure(null)
+            }
+        }
     }
+}
 
-    data class GetMissingMessagesParams(
-        val headers: Headers,
-        val params: Params
-    ) {
-        class Headers(
-            val token: String,
-        )
-        class Params(
-            val chatReference: String,
-            val yourUsername: String,
-        )
-    }
+data class GetMissingMessagesParams(
+    val headers: Headers,
+    val params: Params
+) {
+    class Headers(
+        val token: String,
+    )
+    class Params(
+        val chatReference: String,
+        val yourUsername: String,
+    )
 }
