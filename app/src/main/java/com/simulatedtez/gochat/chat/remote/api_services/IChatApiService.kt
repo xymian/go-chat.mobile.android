@@ -1,7 +1,7 @@
 package com.simulatedtez.gochat.chat.remote.api_services
 
-import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase.AckParams
-import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase.GetMissingMessagesParams
+import com.simulatedtez.gochat.chat.remote.api_usecases.AckParams
+import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.remote.IResponse
 
