@@ -14,6 +14,7 @@ import com.simulatedtez.gochat.chat.view_model.models.ChatInfo
 import com.simulatedtez.gochat.chat.view_model.models.ChatPage
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class ChatViewModel(
@@ -71,5 +72,9 @@ class ChatViewModel(
         viewModelScope.launch {
             _newMessage.value = message
         }
+    }
+
+    fun cancel() {
+        viewModelScope.cancel()
     }
 }
