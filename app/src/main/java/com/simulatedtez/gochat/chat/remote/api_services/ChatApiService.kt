@@ -1,6 +1,6 @@
 package com.simulatedtez.gochat.chat.remote.api_services
 
-import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase.AckParams
+import com.simulatedtez.gochat.chat.remote.api_usecases.AckParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.remote.Response
@@ -25,7 +25,7 @@ class ChatApiService(private val client: HttpClient): IChatApiService {
         return Response {
             client.post("") {
                 header(HttpHeaders.Authorization, "Bearer ${params.headers.token}")
-                setBody(params.params)
+                setBody(params.request)
             }
         }
     }
