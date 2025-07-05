@@ -10,8 +10,8 @@ import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecas
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.repository.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
-import com.simulatedtez.gochat.chat.view_model.models.ChatInfo
-import com.simulatedtez.gochat.chat.view_model.models.ChatPage
+import com.simulatedtez.gochat.chat.models.ChatInfo
+import com.simulatedtez.gochat.chat.models.ChatPage
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel

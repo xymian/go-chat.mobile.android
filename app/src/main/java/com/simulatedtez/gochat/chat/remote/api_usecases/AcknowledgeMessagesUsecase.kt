@@ -3,7 +3,7 @@ package com.simulatedtez.gochat.chat.remote.api_usecases
 import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.chat.remote.models.AckResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
-import com.simulatedtez.gochat.chat.view_model.models.ChatInfo
+import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.remote.IResponse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

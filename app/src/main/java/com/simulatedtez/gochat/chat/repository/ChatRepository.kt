@@ -6,8 +6,8 @@ import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
-import com.simulatedtez.gochat.chat.view_model.models.ChatInfo
-import com.simulatedtez.gochat.chat.view_model.models.ChatPage
+import com.simulatedtez.gochat.chat.models.ChatInfo
+import com.simulatedtez.gochat.chat.models.ChatPage
 import listeners.ChatServiceListener
 
 class ChatRepository(

@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.auth.view.LoginScreen
 import com.simulatedtez.gochat.auth.view.SignupScreen
+import com.simulatedtez.gochat.chat.view.ConversationsScreen
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
 
 class MainActivity : ComponentActivity() {
@@ -30,13 +31,17 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "conversations") {
         composable("login") {
             navController.LoginScreen()
         }
 
         composable("signup") {
             navController.SignupScreen()
+        }
+
+        composable("conversations") {
+            navController.ConversationsScreen()
         }
     }
 }

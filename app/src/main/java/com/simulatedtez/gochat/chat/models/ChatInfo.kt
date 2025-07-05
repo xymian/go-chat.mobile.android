@@ -1,4 +1,4 @@
-package com.simulatedtez.gochat.chat.view_model.models
+package com.simulatedtez.gochat.chat.models
 
 data class ChatInfo(
     val username: String,
