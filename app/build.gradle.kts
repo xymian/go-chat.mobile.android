@@ -55,6 +55,13 @@ android {
 
 dependencies {
 
+    // For Kotlin users
+    implementation (libs.androidx.navigation.fragment.ktx)
+    implementation (libs.androidx.navigation.ui.ktx)
+
+    // If you're using Compose
+    implementation (libs.androidx.navigation.compose)
+
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio) // CIO engine for JVM
     implementation(libs.ktor.client.content.negotiation)
