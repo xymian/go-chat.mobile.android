@@ -48,7 +48,7 @@ fun AppNavigation() {
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun MainPreview() {
     GoChatTheme {
         AppNavigation()
     }

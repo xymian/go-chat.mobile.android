@@ -21,7 +21,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,14 +34,44 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.simulatedtez.gochat.AppNavigation
+import com.simulatedtez.gochat.auth.repository.LoginRepository
+import com.simulatedtez.gochat.auth.view_model.LoginViewModel
+import com.simulatedtez.gochat.auth.view_model.LoginViewModelFactory
+import com.simulatedtez.gochat.ui.theme.GoChatTheme
 
 @Composable
 fun NavController.LoginScreen() {
-    var email by remember { mutableStateOf("") }
+
+    val viewModelFactory = remember { LoginViewModelFactory() }
+    val loginViewModel: LoginViewModel = viewModel(factory = viewModelFactory)
+
+    val loginSuccess by loginViewModel.isLoginSuccessful.observeAsState(false)
+    val loggingIn by loginViewModel.isLoggingIn.observeAsState(false)
+
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    LaunchedEffect(loginSuccess) {
+        if (loginSuccess) {
+            navigate("conversations")
+            loginViewModel.onLoginCompleted()
+        }
+    }
+
+    LaunchedEffect(loggingIn) {
+        if (loggingIn) {
+            // show loading indicator
+        } else {
+            // hide loading indicator
+        }
+    }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -72,9 +104,9 @@ fun NavController.LoginScreen() {
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email Address") },
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
@@ -105,6 +137,7 @@ fun NavController.LoginScreen() {
 
             Button(
                 onClick = {
+                    loginViewModel.login(username, password)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,5 +197,13 @@ fun NavController.LoginScreen() {
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginPreview() {
+    GoChatTheme {
+        rememberNavController().LoginScreen()
     }
 }

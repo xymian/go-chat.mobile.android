@@ -9,8 +9,8 @@ import com.simulatedtez.gochat.remote.Response
 
 class LoginRepository(
     private val loginUsecase: LoginUsecase,
-    private val loginEventListener: LoginEventListener,
 ) {
+    private var loginEventListener: LoginEventListener? = null
 
     suspend fun login(username: String, password: String) {
         val loginParams = LoginParams(
@@ -24,11 +24,11 @@ class LoginRepository(
                 override fun onResponse(response: IResponse<LoginResponse>) {
                     when (response) {
                         is IResponse.Success -> {
-                            loginEventListener.onLogin(response.data)
+                            loginEventListener?.onLogin(response.data)
                             // cache login details
                         }
                         is IResponse.Failure -> {
-                            loginEventListener.onLoginFailed(response)
+                            loginEventListener?.onLoginFailed(response)
                         }
 
                         is Response -> {}
@@ -36,6 +36,10 @@ class LoginRepository(
                 }
             }
         )
+    }
+
+    fun setEventListener(listener: LoginEventListener) {
+        loginEventListener = listener
     }
 }
 

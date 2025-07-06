@@ -1,6 +1,5 @@
 package com.simulatedtez.gochat.chat.view
 
-import androidx.appcompat.resources.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -36,10 +35,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.simulatedtez.gochat.R
+import com.simulatedtez.gochat.auth.view.SignupScreen
 import com.simulatedtez.gochat.chat.models.Conversation
+import com.simulatedtez.gochat.ui.theme.GoChatTheme
 import io.ktor.websocket.Frame
 
 val sampleChats = listOf(
@@ -95,7 +99,7 @@ fun ChatItem(chat: Conversation) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = painterResource(id = R.drawable.abc_vector_test),
+            painter = painterResource(id = R.drawable.ic_default_user_image),
             contentDescription = "Profile Picture",
             modifier = Modifier
                 .size(50.dp)
@@ -145,4 +149,12 @@ fun ChatItem(chat: Conversation) {
         thickness = DividerDefaults.Thickness,
         color = DividerDefaults.color
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ConversationsPreview() {
+    GoChatTheme {
+        rememberNavController().ConversationsScreen()
+    }
 }
