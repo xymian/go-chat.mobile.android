@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.auth.remote.api_services
 
+import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.auth.remote.api_usecases.LoginParams
 import com.simulatedtez.gochat.auth.remote.api_usecases.SignupParams
 import com.simulatedtez.gochat.auth.remote.models.LoginResponse
@@ -16,7 +17,7 @@ class AuthApiService(private val client: HttpClient): IAuthApiService {
 
     override suspend fun login(params: LoginParams): IResponse<LoginResponse> {
         return Response {
-            client.post("") {
+            client.post(BuildConfig.CHAT_HISTORY_BASE_URL) {
                 contentType(ContentType.Application.Json)
                 setBody(params)
             }

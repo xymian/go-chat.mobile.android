@@ -3,7 +3,7 @@ package com.simulatedtez.gochat.chat.remote.models
 import com.simulatedtez.gochat.chat.database.Message_db
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import models.Message
+import models.ComparableMessage
 
 @Serializable
 data class Message(
@@ -12,33 +12,32 @@ data class Message(
     @SerialName("messageReference")
     val messageReference: String? = null,
     @SerialName("textMessage")
-    val textMessage: String? = null,
+    override val message: String? = null,
     @SerialName("senderUsername")
-    val senderUsername: String? = null,
+    override val sender: String? = null,
     @SerialName("receiverUsername")
     val receiverUsername: String? = null,
     @SerialName("messageTimestamp")
-    val messageTimestamp: String? = null,
+    override val timestamp: String? = null,
     @SerialName("chatReference")
     val chatReference: String? = null,
     @SerialName("seenByReceiver")
     val seenByReceiver: Boolean,
-): Message(_timestamp = messageTimestamp, _messageId = messageReference,
-    _sender = senderUsername, _receiver = receiverUsername, _message = textMessage)
+): ComparableMessage()
 
-fun com.simulatedtez.gochat.chat.remote.models.Message.toMessage_db(): Message_db {
+fun Message.toMessage_db(): Message_db {
     return Message_db(
         messageReference = messageReference,
-        senderUsername = senderUsername,
+        senderUsername = sender,
         receiverUsername = receiverUsername,
-        textMessage = textMessage,
+        textMessage = message,
         chatReference = chatReference,
-        messageTimestamp = messageTimestamp,
+        messageTimestamp = timestamp,
         seenByReceiver = seenByReceiver
     )
 }
 
-fun List<com.simulatedtez.gochat.chat.remote.models.Message>.toMessages_db(): List<Message_db> {
+fun List<Message>.toMessages_db(): List<Message_db> {
     return map {
         it.toMessage_db()
     }

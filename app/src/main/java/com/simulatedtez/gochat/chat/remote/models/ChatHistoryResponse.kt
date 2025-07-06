@@ -6,7 +6,7 @@ import models.FetchMessagesResponse
 
 @Serializable
 data class ChatHistoryResponse(
-    val data: List<Message>? = listOf(),
-    val isSuccessful: Boolean? = false,
-    val error: String?
-): FetchMessagesResponse<Message>(data, isSuccessful, error)
+    override val data: List<Message>? = listOf(),
+    override val isSuccessful: Boolean? = false,
+    override val message: String?
+): FetchMessagesResponse<Message>()

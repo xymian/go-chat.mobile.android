@@ -5,7 +5,7 @@ import models.ChatResponse
 
 @Serializable
 data class AckResponse(
-    val data: String?,
-    val isSuccessful: Boolean?,
-    val error: String?,
-): ChatResponse(data, isSuccessful, error)
+    override val data: String?,
+    override val isSuccessful: Boolean?,
+    override val message: String?,
+): ChatResponse()

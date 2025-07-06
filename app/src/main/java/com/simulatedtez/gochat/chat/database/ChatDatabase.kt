@@ -34,10 +34,10 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
     override suspend fun loadNextPage(): List<Message> {
         return timestampsOfLastMessageInPages.let { topMessageTimestamp ->
             messagesDao.getMessages(topMessageTimestamp, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
-                it.messageTimestamp
+                it.timestamp
             }.also {
                 if (it.isNotEmpty()) {
-                    timestampsOfLastMessageInPages = it.first().messageTimestamp!!
+                    timestampsOfLastMessageInPages = it.first().timestamp!!
                 }
             }
         }
@@ -68,11 +68,11 @@ data class Message_db(
 fun Message_db.toMessage(): Message {
     return Message(
         messageReference = messageReference,
-        senderUsername = senderUsername,
+        sender = senderUsername,
         receiverUsername = receiverUsername,
-        textMessage = textMessage,
+        message = textMessage,
         chatReference = chatReference,
-        messageTimestamp = messageTimestamp,
+        timestamp = messageTimestamp,
         seenByReceiver = seenByReceiver
     )
 }

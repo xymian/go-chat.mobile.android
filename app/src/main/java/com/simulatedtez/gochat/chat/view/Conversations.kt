@@ -42,7 +42,6 @@ import androidx.navigation.NavController
 import com.simulatedtez.gochat.chat.models.Conversation
 import io.ktor.websocket.Frame
 
-// Sample data for the chat list
 val sampleChats = listOf(
     Conversation(1, "Jane Doe", "Hey, how are you?", "10:42 AM", 2, ""),
     Conversation(2, "John Smith", "Let's catch up tomorrow.", "9:21 AM", 0, ""),

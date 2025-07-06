@@ -3,18 +3,21 @@ plugins {
     kotlin("plugin.serialization") version "1.8.21"
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.0"
 }
 
 
 android {
     namespace = "com.simulatedtez.gochat"
-    compileSdk = 35
+    compileSdk = 36
+
+    android.buildFeatures.buildConfig = true
 
     defaultConfig {
+        multiDexEnabled = true
         applicationId = "com.simulatedtez.gochat"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -22,11 +25,17 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://192.168.0.2:6060\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://192.168.0.2:6060\"")
+        }
         release {
+            buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://gochat.com\"")
             isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -55,6 +64,8 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.multidex)
+
     // For Kotlin users
     implementation (libs.androidx.navigation.fragment.ktx)
     implementation (libs.androidx.navigation.ui.ktx)
@@ -62,8 +73,8 @@ dependencies {
     // If you're using Compose
     implementation (libs.androidx.navigation.compose)
 
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio) // CIO engine for JVM
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
 

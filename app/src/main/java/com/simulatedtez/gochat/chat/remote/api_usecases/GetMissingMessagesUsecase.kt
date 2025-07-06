@@ -19,7 +19,7 @@ class GetMissingMessagesUsecase(
                 val chatServiceRes = ChatHistoryResponse(
                     data = res.data,
                     isSuccessful = true,
-                    error = null,
+                    message = null,
                 )
                 handler.onResponse(chatServiceRes)
             }

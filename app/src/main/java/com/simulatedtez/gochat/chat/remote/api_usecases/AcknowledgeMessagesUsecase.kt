@@ -17,7 +17,7 @@ class AcknowledgeMessagesUsecase(
 
     override suspend fun call(data: List<Message>?, handler: ResponseCallback<AckResponse>) {
         data?.let { messages ->
-            val ackParams = createAckParams(messages.sortedBy { it.messageTimestamp })
+            val ackParams = createAckParams(messages.sortedBy { it.timestamp })
             call(ackParams, handler)
         }
     }
@@ -31,7 +31,7 @@ class AcknowledgeMessagesUsecase(
             chatServiceHandler.onResponse(AckResponse(
                 data = res.data,
                 isSuccessful = true,
-                error = null
+                message = null
             ))
         } else {
             chatServiceHandler.onFailure(null)
@@ -39,12 +39,12 @@ class AcknowledgeMessagesUsecase(
     }
 
     private fun createAckParams(messages: List<Message>): AckParams {
-        val sortedList = messages.sortedBy { it.messageTimestamp }
+        val sortedList = messages.sortedBy { it.timestamp }
         return AckParams(
             headers = AckParams.Headers(token = ""),
             request = AckParams.Request(
-                from = sortedList.first().messageTimestamp!!,
-                to = sortedList.last().messageTimestamp!!,
+                from = sortedList.first().timestamp!!,
+                to = sortedList.last().timestamp!!,
                 chatReference = chatInfo.chatReference,
                 yourUsername = chatInfo.username
             )
