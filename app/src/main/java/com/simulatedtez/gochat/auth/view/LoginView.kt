@@ -193,7 +193,9 @@ fun NavController.LoginScreen() {
                     text = "Sign Up",
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable {  }
+                    modifier = Modifier.clickable {
+                        navigate(AuthScreens.SIGNUP.name)
+                    }
                 )
             }
         }

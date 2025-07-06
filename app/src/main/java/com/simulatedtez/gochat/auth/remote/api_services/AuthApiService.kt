@@ -7,6 +7,7 @@ import com.simulatedtez.gochat.auth.remote.models.LoginResponse
 import com.simulatedtez.gochat.auth.remote.models.SignupResponse
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.Response
+import com.simulatedtez.gochat.remote.postWithBaseUrl
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -16,20 +17,20 @@ import io.ktor.http.contentType
 class AuthApiService(private val client: HttpClient): IAuthApiService {
 
     override suspend fun login(params: LoginParams): IResponse<LoginResponse> {
-        return Response {
-            client.post(BuildConfig.CHAT_HISTORY_BASE_URL) {
+        return Response<LoginResponse> {
+            client.postWithBaseUrl("/login") {
                 contentType(ContentType.Application.Json)
-                setBody(params)
+                setBody(params.request)
             }
-        }
+        }.invoke()
     }
 
     override suspend fun signup(params: SignupParams): IResponse<SignupResponse> {
-        return Response {
-            client.post("") {
+        return Response<SignupResponse> {
+            client.postWithBaseUrl("/register") {
                 contentType(ContentType.Application.Json)
-                setBody(params)
+                setBody(params.request)
             }
-        }
+        }.invoke()
     }
 }

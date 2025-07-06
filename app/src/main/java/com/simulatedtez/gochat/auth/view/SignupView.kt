@@ -140,7 +140,9 @@ fun NavController.SignupScreen() {
                     text = "Login",
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable {  }
+                    modifier = Modifier.clickable {
+                        popBackStack()
+                    }
                 )
             }
         }

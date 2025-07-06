@@ -15,19 +15,19 @@ import io.ktor.http.HttpHeaders
 class ChatApiService(private val client: HttpClient): IChatApiService {
 
     override suspend fun getMissingMessages(params: GetMissingMessagesParams): IResponse<List<Message>> {
-        return Response {
+        return Response<List<Message>> {
             client.get("") {
                 header(HttpHeaders.Authorization, "Bearer ${params.headers.token}")
             }
-        }
+        }.invoke()
     }
 
     override suspend fun acknowledgeMessage(params: AckParams): IResponse<String> {
-        return Response {
+        return Response<String> {
             client.post("") {
                 header(HttpHeaders.Authorization, "Bearer ${params.headers.token}")
                 setBody(params.request)
             }
-        }
+        }.invoke()
     }
 }
