@@ -6,11 +6,18 @@ import com.simulatedtez.gochat.auth.remote.models.SignupResponse
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.Response
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class SignupRepository(
     private val signupUsecase: SignupUsecase,
     private val signupEventListener: SignupEventListener,
 ) {
+
+    private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun signUp(username: String, password: String) {
         val signupParams = SignupParams(
@@ -25,10 +32,14 @@ class SignupRepository(
                     when (response) {
                         is IResponse.Success -> {
                             // cache login details
-                            signupEventListener.onSignUp(response.data)
+                            context.launch(Dispatchers.Main) {
+                                signupEventListener.onSignUp(response.data)
+                            }
                         }
                         is IResponse.Failure -> {
-                            signupEventListener.onSignUpFailed(response)
+                            context.launch(Dispatchers.Main) {
+                                signupEventListener.onSignUpFailed(response)
+                            }
                         }
 
                         is Response -> {}
@@ -36,6 +47,10 @@ class SignupRepository(
                 }
             }
         )
+    }
+
+    fun cancel() {
+        context.cancel()
     }
 }
 

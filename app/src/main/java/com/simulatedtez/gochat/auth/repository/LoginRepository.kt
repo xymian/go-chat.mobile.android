@@ -6,11 +6,19 @@ import com.simulatedtez.gochat.auth.remote.models.LoginResponse
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.Response
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import okhttp3.Dispatcher
 
 class LoginRepository(
     private val loginUsecase: LoginUsecase,
 ) {
     private var loginEventListener: LoginEventListener? = null
+
+    private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun login(username: String, password: String) {
         val loginParams = LoginParams(
@@ -24,11 +32,15 @@ class LoginRepository(
                 override fun onResponse(response: IResponse<LoginResponse>) {
                     when (response) {
                         is IResponse.Success -> {
-                            loginEventListener?.onLogin(response.data)
+                            context.launch(Dispatchers.Main) {
+                                loginEventListener?.onLogin(response.data)
+                            }
                             // cache login details
                         }
                         is IResponse.Failure -> {
-                            loginEventListener?.onLoginFailed(response)
+                            context.launch(Dispatchers.Main) {
+                                loginEventListener?.onLoginFailed(response)
+                            }
                         }
 
                         is Response -> {}
@@ -40,6 +52,10 @@ class LoginRepository(
 
     fun setEventListener(listener: LoginEventListener) {
         loginEventListener = listener
+    }
+
+    fun cancel() {
+        context.cancel()
     }
 }
 
