@@ -59,9 +59,9 @@ fun NavController.LoginScreen() {
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(loginSuccess) {
+        println("login success")
         if (loginSuccess) {
             navigate("conversations")
-            loginViewModel.onLoginCompleted()
         }
     }
 

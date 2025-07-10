@@ -13,7 +13,7 @@ import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.auth.view.LoginScreen
 import com.simulatedtez.gochat.auth.view.SignupScreen
 import com.simulatedtez.gochat.chat.ChatScreens
-import com.simulatedtez.gochat.chat.view.ConversationsScreen
+import com.simulatedtez.gochat.conversations.view.ConversationsScreen
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
 
 class MainActivity : ComponentActivity() {

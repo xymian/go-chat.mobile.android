@@ -85,7 +85,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     // for annotation processing
     implementation(libs.androidx.lifecycle.runtime.ktx.v270)
-    implementation(libs.napier)
+
+    implementation(libs.napier.android)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp)
