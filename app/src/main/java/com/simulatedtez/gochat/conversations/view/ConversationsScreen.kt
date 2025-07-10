@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.R
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
@@ -119,8 +120,7 @@ fun NavController.ConversationsScreen() {
             NewChatSheetContent(
                 !waiting,
                 onAddClick = { username ->
-                    viewModel.addNewConversation("te6lim", username)
-                    showBottomSheet = false
+                    viewModel.addNewConversation(session.username, username)
                 }
             )
         }

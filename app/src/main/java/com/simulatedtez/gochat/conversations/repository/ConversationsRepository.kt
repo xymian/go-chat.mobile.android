@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.conversations.repository
 
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
@@ -30,7 +31,7 @@ class ConversationsRepository(
     suspend fun addNewChat(username: String, otherUser: String) {
         val params = StartNewChatParams(
             StartNewChatParams.Headers(
-                accessToken = ""),
+                accessToken = session.accessToken),
             request = StartNewChatParams.Request(
                 user = username, other = otherUser
             )
