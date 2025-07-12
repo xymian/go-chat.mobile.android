@@ -5,16 +5,17 @@ import com.simulatedtez.gochat.auth.remote.models.LoginResponse
 import com.simulatedtez.gochat.remote.IEndpointCaller
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.RemoteParams
 import kotlinx.serialization.Serializable
 
 class LoginUsecase(
     private val authApiService: IAuthApiService
-): IEndpointCaller<LoginParams, LoginResponse, IResponse<LoginResponse>> {
+): IEndpointCaller<LoginParams, ParentResponse<LoginResponse>, IResponse<ParentResponse<LoginResponse>>> {
 
     override suspend fun call(
         params: LoginParams,
-        handler: IResponseHandler<LoginResponse, IResponse<LoginResponse>>?
+        handler: IResponseHandler<ParentResponse<LoginResponse>, IResponse<ParentResponse<LoginResponse>>>?
     ) {
         handler?.onResponse(authApiService.login(params))
     }

@@ -5,6 +5,7 @@ import com.simulatedtez.gochat.auth.remote.api_usecases.LoginUsecase
 import com.simulatedtez.gochat.auth.remote.models.LoginResponse
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,12 +29,15 @@ class LoginRepository(
             )
         )
         loginUsecase.call(
-            loginParams, object: IResponseHandler<LoginResponse, IResponse<LoginResponse>> {
-                override fun onResponse(response: IResponse<LoginResponse>) {
+            loginParams, object: IResponseHandler<ParentResponse<LoginResponse>,
+                    IResponse<ParentResponse<LoginResponse>>> {
+                override fun onResponse(response: IResponse<ParentResponse<LoginResponse>>) {
                     when (response) {
                         is IResponse.Success -> {
                             context.launch(Dispatchers.Main) {
-                                loginEventListener?.onLogin(response.data)
+                                response.data.data?.let {
+                                    loginEventListener?.onLogin(it)
+                                }
                             }
                             // cache login details
                         }
@@ -61,5 +65,5 @@ class LoginRepository(
 
 interface LoginEventListener {
     fun onLogin(loginInfo: LoginResponse)
-    fun onLoginFailed(errorResponse: IResponse.Failure<LoginResponse>)
+    fun onLoginFailed(errorResponse: IResponse.Failure<ParentResponse<LoginResponse>>)
 }

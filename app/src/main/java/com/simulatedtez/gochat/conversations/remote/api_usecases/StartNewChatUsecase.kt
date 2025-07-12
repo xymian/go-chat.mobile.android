@@ -5,16 +5,17 @@ import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
 import com.simulatedtez.gochat.remote.IEndpointCaller
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.RemoteParams
 import kotlinx.serialization.Serializable
 
 class StartNewChatUsecase(
     private val conversationsApiService: IConversationsService
-): IEndpointCaller<StartNewChatParams, NewChatResponse, IResponse<NewChatResponse>> {
+): IEndpointCaller<StartNewChatParams, ParentResponse<NewChatResponse>, IResponse<ParentResponse<NewChatResponse>>> {
 
     override suspend fun call(
         params: StartNewChatParams,
-        handler: IResponseHandler<NewChatResponse, IResponse<NewChatResponse>>?
+        handler: IResponseHandler<ParentResponse<NewChatResponse>, IResponse<ParentResponse<NewChatResponse>>>?
     ) {
         handler?.onResponse(conversationsApiService.addNewConversation(params))
     }

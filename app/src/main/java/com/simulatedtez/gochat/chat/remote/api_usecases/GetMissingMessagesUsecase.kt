@@ -17,7 +17,7 @@ class GetMissingMessagesUsecase(
         when (val res = chatApiService.getMissingMessages(params)) {
             is IResponse.Success -> {
                 val chatServiceRes = ChatHistoryResponse(
-                    data = res.data,
+                    data = res.data.data,
                     isSuccessful = true,
                     message = null,
                 )

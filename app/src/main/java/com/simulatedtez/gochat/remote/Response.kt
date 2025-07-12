@@ -4,6 +4,22 @@ import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ParentResponse<R>(
+    @SerialName("data")
+    val data: R?,
+    @SerialName("message")
+    val message: String,
+    @SerialName("error")
+    val error: String,
+    @SerialName("statusCode")
+    val statusCode: Int,
+    @SerialName("isSuccessful")
+    val isSuccessful: Boolean
+)
 
 class Response<R>(val call: suspend () -> HttpResponse): IResponse<R> {
 

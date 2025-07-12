@@ -32,8 +32,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,18 +60,11 @@ import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelPr
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
 import io.ktor.websocket.Frame
 
-val sampleChats = listOf(
-    Conversation(1, "", "Jane Doe", "","Hey, how are you?", "10:42 AM", 2, ""),
-    Conversation(2, "", "John Smith", "Let's catch up tomorrow.", "", "9:21 AM", 0, ""),
-    Conversation(3, "", "Project Team", "", "Don't forget the meeting at 3 PM.", "Yesterday", 5, ""),
-    Conversation(4, "", "Sarah Lee", "", "Sounds good!", "Yesterday", 0, ""),
-    Conversation(5, "", "Mom", "", "Can you call me back?", "2 days ago", 1, ""),
-    Conversation(6, "", "Design Group", "", "I've uploaded the new mockups.", "2 days ago", 0, "")
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavController.ConversationsScreen() {
+
+    val conversations = remember { mutableStateListOf<Conversation>() }
 
     val viewModelFactory = remember { ConversationsViewModelProvider() }
     val viewModel: ConversationsViewModel = viewModel(factory = viewModelFactory)
@@ -79,6 +74,12 @@ fun NavController.ConversationsScreen() {
 
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    LaunchedEffect(newConversation) {
+        newConversation?.let {
+            conversations.add(it)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -106,7 +107,7 @@ fun NavController.ConversationsScreen() {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            items(sampleChats) { chat ->
+            items(conversations) { chat ->
                 ChatItem(chat = chat)
             }
         }

@@ -6,6 +6,7 @@ import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUse
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,12 +38,14 @@ class ConversationsRepository(
             )
         )
         startNewChatUsecase.call(
-            params, object: IResponseHandler<NewChatResponse, IResponse<NewChatResponse>> {
-            override fun onResponse(response: IResponse<NewChatResponse>) {
+            params, object: IResponseHandler<ParentResponse<NewChatResponse>, IResponse<ParentResponse<NewChatResponse>>> {
+            override fun onResponse(response: IResponse<ParentResponse<NewChatResponse>>) {
                when (response) {
                    is IResponse.Success -> {
                        context.launch(Dispatchers.Main) {
-                           conversationsListener?.onNewChatAdded(response.data)
+                           response.data.data?.let {
+                               conversationsListener?.onNewChatAdded(it)
+                           }
                        }
                    }
                    is IResponse.Failure -> {

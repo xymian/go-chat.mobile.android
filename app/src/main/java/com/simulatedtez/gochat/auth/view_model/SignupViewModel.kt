@@ -8,6 +8,7 @@ import com.simulatedtez.gochat.auth.remote.models.SignupResponse
 import com.simulatedtez.gochat.auth.repository.SignupEventListener
 import com.simulatedtez.gochat.auth.repository.SignupRepository
 import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.ParentResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -35,7 +36,7 @@ class SignupViewModel(
         signupEventListener.onSignUp(signupInfo)
     }
 
-    override fun onSignUpFailed(errorResponse: IResponse.Failure<SignupResponse>) {
+    override fun onSignUpFailed(errorResponse: IResponse.Failure<ParentResponse<SignupResponse>>) {
         _isSigningUp.value = false
         signupEventListener.onSignUpFailed(errorResponse)
     }

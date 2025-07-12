@@ -12,6 +12,7 @@ import com.simulatedtez.gochat.auth.remote.models.LoginResponse
 import com.simulatedtez.gochat.auth.repository.LoginEventListener
 import com.simulatedtez.gochat.auth.repository.LoginRepository
 import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.client
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -35,7 +36,7 @@ class LoginViewModel(
         }
     }
 
-    override fun onLoginFailed(errorResponse: IResponse.Failure<LoginResponse>) {
+    override fun onLoginFailed(errorResponse: IResponse.Failure<ParentResponse<LoginResponse>>) {
         _isLoggingIn.value = false
     }
 

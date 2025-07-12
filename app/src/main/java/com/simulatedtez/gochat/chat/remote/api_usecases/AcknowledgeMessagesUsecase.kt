@@ -29,7 +29,7 @@ class AcknowledgeMessagesUsecase(
         val res = chatApiService.acknowledgeMessage(request)
         if (res is IResponse.Success) {
             chatServiceHandler.onResponse(AckResponse(
-                data = res.data,
+                data = res.data.data,
                 isSuccessful = true,
                 message = null
             ))
