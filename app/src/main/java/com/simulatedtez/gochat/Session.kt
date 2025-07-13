@@ -1,13 +1,24 @@
 package com.simulatedtez.gochat
 
-open class Session private constructor(
-    var username: String = "",
+import com.simulatedtez.gochat.chat.models.ChatInfo
+
+open class Session private constructor() {
+
+    var username: String = ""
+        private set
     var accessToken: String = ""
-) {
+        private set
+    var activeChat: ChatInfo? = null
+        private set
+
     companion object {
         val session = object: Session() {
 
         }
+    }
+
+    fun setActiveChat(chatInfo: ChatInfo) {
+        activeChat = chatInfo
     }
 
     fun saveAccessToken(token: String) {

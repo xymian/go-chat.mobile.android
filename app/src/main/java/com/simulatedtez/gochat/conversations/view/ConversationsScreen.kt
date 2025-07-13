@@ -54,6 +54,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.R
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
@@ -62,7 +63,7 @@ import io.ktor.websocket.Frame
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavController.ConversationsScreen() {
+fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions) {
 
     val conversations = remember { mutableStateListOf<Conversation>() }
 
@@ -117,7 +118,7 @@ fun NavController.ConversationsScreen() {
                 .padding(paddingValues)
         ) {
             items(conversations) { chat ->
-                ChatItem(chat = chat)
+                ChatItem(chat = chat, screenActions)
             }
         }
     }
@@ -138,11 +139,19 @@ fun NavController.ConversationsScreen() {
 }
 
 @Composable
-fun ChatItem(chat: Conversation) {
+fun ChatItem(chat: Conversation, screenActions: ConversationsScreenActions) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {  }
+            .clickable {
+                screenActions.onChatClicked(
+                    ChatInfo(
+                        username = chat.me,
+                        recipientsUsernames = listOf(chat.other),
+                        chatReference = chat.chatReference
+                    )
+                )
+            }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -234,10 +243,20 @@ fun NewChatSheetContent(isEnabled:Boolean, onAddClick: (String) -> Unit) {
     }
 }
 
+interface ConversationsScreenActions {
+    fun onChatClicked(chatInfo: ChatInfo)
+}
+
 @Preview(showBackground = true)
 @Composable
 fun ConversationsPreview() {
     GoChatTheme {
-        rememberNavController().ConversationsScreen()
+        rememberNavController().ConversationsScreen(
+            screenActions = object: ConversationsScreenActions {
+                override fun onChatClicked(chatInfo: ChatInfo) {
+
+                }
+            }
+        )
     }
 }

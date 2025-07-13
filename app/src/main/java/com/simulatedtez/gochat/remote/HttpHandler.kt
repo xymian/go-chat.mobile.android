@@ -8,6 +8,8 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.statement.HttpResponse
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
@@ -19,6 +21,7 @@ val client = HttpClient(CIO) {
 
 suspend fun HttpClient.postWithBaseUrl(endpoint: String, block: HttpRequestBuilder.() -> Unit): HttpResponse {
     return post(BuildConfig.CHAT_HISTORY_BASE_URL + endpoint) {
+        contentType(ContentType.Application.Json)
         block()
     }
 }

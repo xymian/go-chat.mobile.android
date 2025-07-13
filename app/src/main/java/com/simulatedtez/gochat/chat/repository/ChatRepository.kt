@@ -2,26 +2,46 @@ package com.simulatedtez.gochat.chat.repository
 
 import ChatServiceError
 import ChatServiceManager
+import com.simulatedtez.gochat.BuildConfig
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
+import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
+import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
+import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
+import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.IResponseHandler
+import io.github.aakira.napier.Napier
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.serializer
 import listeners.ChatServiceListener
+import okhttp3.Response
 
 class ChatRepository(
-    chatInfo: ChatInfo,
+    private val chatInfo: ChatInfo,
+    private val createChatRoomUsecase: CreateChatRoomUsecase,
     getMissingMessagesUsecase: GetMissingMessagesUsecase,
     acknowledgeMessagesUsecase: AcknowledgeMessagesUsecase,
     private val chatDb: IChatStorage,
 ): ChatServiceListener<Message> {
 
-    private var chatEventListener: ChatEventListener? = null
+    private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
+    private var chatEventListener: ChatEventListener? = null
     private val chatService = ChatServiceManager.Builder<Message>()
-        .setSocketURL(chatInfo.socketURL)
+        .setSocketURL(
+            "${BuildConfig.WEBSOCKET_BASE_URL}/room/${chatInfo.chatReference}" +
+                    "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}"
+        )
         .setUsername(chatInfo.username)
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setMissingMessagesCaller(getMissingMessagesUsecase)
@@ -56,12 +76,53 @@ class ChatRepository(
         )
     }
 
+    suspend fun createNewChatRoom(onSuccess: (() -> Unit)? = null) {
+        val params = CreateChatRoomParams(
+            CreateChatRoomParams.Headers(accessToken = session.accessToken),
+            request = CreateChatRoomParams.Request(
+                user = chatInfo.username,
+                other = chatInfo.recipientsUsernames[0],
+                chatReference = chatInfo.chatReference
+            )
+        )
+        createChatRoomUsecase.call(
+            params = params, object: IResponseHandler<String, IResponse<String>> {
+                override fun onResponse(response: IResponse<String>) {
+                    when(response) {
+                        is IResponse.Success -> {
+                            context.launch(Dispatchers.Main) {
+                                onSuccess?.invoke()
+                            }
+                        }
+                        is IResponse.Failure -> {
+                            Napier.d(response.response ?: "unknown")
+                        }
+                        else -> {
+
+                        }
+                    }
+                }
+            }
+        )
+    }
+
     override fun onConnect() {
         chatEventListener?.onConnect()
     }
 
-    override fun onDisconnect() {
-        chatEventListener?.onDisconnect()
+    override fun onDisconnect(t: Throwable, response: Response?) {
+        when {
+            response?.code == HttpStatusCode.NotFound.value -> {
+                context.launch(Dispatchers.IO) {
+                    createNewChatRoom {
+                        chatService.connect()
+                    }
+                }
+            } else -> {
+            Napier.d(response?.message ?: "unknown")
+            chatEventListener?.onDisconnect()
+            }
+        }
     }
 
     override fun onError(error: ChatServiceError, message: String) {

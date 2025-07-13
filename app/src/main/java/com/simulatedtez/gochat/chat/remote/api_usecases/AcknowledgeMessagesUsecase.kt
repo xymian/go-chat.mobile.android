@@ -41,7 +41,7 @@ class AcknowledgeMessagesUsecase(
     private fun createAckParams(messages: List<Message>): AckParams {
         val sortedList = messages.sortedBy { it.timestamp }
         return AckParams(
-            headers = AckParams.Headers(token = ""),
+            headers = AckParams.Headers(accessToken = ""),
             request = AckParams.Request(
                 from = sortedList.first().timestamp!!,
                 to = sortedList.last().timestamp!!,
@@ -57,7 +57,7 @@ data class AckParams(
     val request: Request
 ) {
     class Headers(
-        val token: String,
+        val accessToken: String,
     )
 
     @Serializable

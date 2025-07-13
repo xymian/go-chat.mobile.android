@@ -23,12 +23,16 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,7 +54,7 @@ import com.simulatedtez.gochat.chat.view_model.ChatViewModel
 import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.formatTimestamp
 
-val sampleMessages = listOf(
+/*val sampleMessages = listOf(
     Message(
         id = "1",
         messageReference = null,
@@ -91,11 +95,13 @@ val sampleMessages = listOf(
         chatReference = "chat123",
         seenByReceiver = false
     )
-)
+)*/
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavController.ChatScreen(chatInfo: ChatInfo) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val messages = remember { mutableListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     
     val chatViewModelProvider = remember { ChatViewModelProvider(
@@ -103,8 +109,41 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     ) }
 
     val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelProvider)
+    
+    val newMessage by chatViewModel.newMessage.observeAsState()
+    val pagedMessages by chatViewModel.pagedMessages.observeAsState()
+
+    val isConnected by chatViewModel.isConnected.observeAsState()
+
+    LaunchedEffect(isConnected) {
+        isConnected?.let {
+            if (it) {
+                snackbarHostState.showSnackbar("socket is connected")
+            } else {
+                snackbarHostState.showSnackbar("socket is disconnected")
+            }
+        }
+    }
+
+    LaunchedEffect(pagedMessages) {
+        pagedMessages?.let {
+            if (it.paginationCount == 1) {
+                messages.clear()
+                messages.addAll(it.messages)
+            } else {
+                messages.addAll(0, it.messages)
+            }
+        }
+    }
+
+    LaunchedEffect(newMessage) {
+        newMessage?.let {
+            messages.add(it)
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(chatInfo.recipientsUsernames[0], fontWeight = FontWeight.Bold) },
@@ -137,9 +176,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            reverseLayout = true // To show the latest messages at the bottom
+            reverseLayout = true
         ) {
-            items(sampleMessages.reversed()) { message ->
+            items(messages.reversed()) { message ->
                 MessageBubble(message = message)
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -147,7 +186,6 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     }
 }
 
-// Composable for a single message bubble
 @Composable
 fun MessageBubble(message: Message) {
     val bubbleColor = if (message.sender == session.username) {
@@ -243,7 +281,6 @@ fun ChatScreenPreview() {
     rememberNavController().ChatScreen(chatInfo = ChatInfo(
         username = session.username,
         recipientsUsernames = listOf("Jane Doe"),
-        chatReference = "",
-        socketURL = ""
+        chatReference = ""
     ))
 }

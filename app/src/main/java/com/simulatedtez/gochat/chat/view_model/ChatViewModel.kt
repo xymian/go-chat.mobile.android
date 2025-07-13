@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
-import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -17,6 +16,7 @@ import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
+import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.remote.client
 import io.github.aakira.napier.Napier
@@ -34,6 +34,9 @@ class ChatViewModel(
     private val _newMessage = MutableLiveData<Message>()
     val newMessage: LiveData<Message> = _newMessage
 
+    private val _isConnected = MutableLiveData<Boolean>()
+    val isConnected: LiveData<Boolean> = _isConnected
+
     fun loadMessages() {
         viewModelScope.launch(Dispatchers.IO) {
             _pagedMessages.value = chatRepo.loadNextPageMessages()
@@ -41,15 +44,16 @@ class ChatViewModel(
     }
 
     override fun onSend(message: Message) {
-
     }
 
     override fun onConnect() {
         Napier.d("socket connected")
+        _isConnected.value = true
     }
 
     override fun onDisconnect() {
         Napier.d("socket disconnected")
+        _isConnected.value = false
     }
 
     override fun onError(message: String) {
@@ -80,9 +84,10 @@ class ChatViewModelProvider(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         val repo = ChatRepository(
             chatInfo = chatInfo,
+            CreateChatRoomUsecase(ChatApiService(client)),
             GetMissingMessagesUsecase(
                 params = GetMissingMessagesParams(
-                    headers = GetMissingMessagesParams.Headers(token = session.accessToken),
+                    headers = GetMissingMessagesParams.Headers(acccessToken = session.accessToken),
                     request = GetMissingMessagesParams.Request(
                         chatReference = chatInfo.chatReference,
                         yourUsername = chatInfo.username
