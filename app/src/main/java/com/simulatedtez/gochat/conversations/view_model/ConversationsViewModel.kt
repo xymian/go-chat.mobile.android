@@ -1,10 +1,12 @@
 package com.simulatedtez.gochat.conversations.view_model
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_services.ConversationsService
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUsecase
@@ -47,10 +49,11 @@ class ConversationsViewModel(
     }
 }
 
-class ConversationsViewModelProvider(): ViewModelProvider.Factory {
+class ConversationsViewModelProvider(private val context: Context): ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         val repo = ConversationsRepository(
-            StartNewChatUsecase(ConversationsService(client))
+            StartNewChatUsecase(ConversationsService(client)),
+            ConversationDatabase.get(context)
         )
         return ConversationsViewModel(repo).apply {
             repo.setListener(this)

@@ -66,7 +66,7 @@ fun NavController.ConversationsScreen() {
 
     val conversations = remember { mutableStateListOf<Conversation>() }
 
-    val viewModelFactory = remember { ConversationsViewModelProvider() }
+    val viewModelFactory = remember { ConversationsViewModelProvider(context) }
     val viewModel: ConversationsViewModel = viewModel(factory = viewModelFactory)
 
     val waiting by viewModel.waiting.observeAsState(false)

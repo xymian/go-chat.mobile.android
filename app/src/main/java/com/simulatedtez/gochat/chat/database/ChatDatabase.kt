@@ -1,6 +1,7 @@
 package com.simulatedtez.gochat.chat.database
 
 import android.content.Context
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Insert
@@ -57,11 +58,17 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
 data class Message_db(
     @PrimaryKey
     val messageReference: String? = null,
+    @ColumnInfo(name = "textMessage")
     val textMessage: String? = null,
+    @ColumnInfo("senderUsername")
     val senderUsername: String? = null,
+    @ColumnInfo("receiverUsername")
     val receiverUsername: String? = null,
+    @ColumnInfo("messageTimestamp")
     val messageTimestamp: String? = null,
+    @ColumnInfo("chatReference")
     val chatReference: String? = null,
+    @ColumnInfo("seenByReceiver")
     val seenByReceiver: Boolean,
 )
 

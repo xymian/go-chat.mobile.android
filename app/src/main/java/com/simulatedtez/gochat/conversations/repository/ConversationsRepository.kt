@@ -1,6 +1,7 @@
 package com.simulatedtez.gochat.conversations.repository
 
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 
 class ConversationsRepository(
     private val startNewChatUsecase: StartNewChatUsecase,
+    private val conversationDB: ConversationDatabase
 ) {
     private var conversationsListener: ConversationsListener? = null
 
