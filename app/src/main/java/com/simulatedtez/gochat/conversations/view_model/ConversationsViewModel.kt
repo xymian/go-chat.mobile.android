@@ -42,7 +42,6 @@ class ConversationsViewModel(
         _newConversation.value = Conversation(
             me = "me",
             other = chat.other,
-            id = 1L,
             chatReference = chat.chatReference
         )
         _waiting.value = false

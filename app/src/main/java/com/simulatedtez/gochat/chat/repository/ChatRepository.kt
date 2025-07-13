@@ -8,6 +8,7 @@ import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecas
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
+import kotlinx.serialization.builtins.serializer
 import listeners.ChatServiceListener
 
 class ChatRepository(

@@ -57,7 +57,7 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
 @Entity(tableName = "messages")
 data class Message_db(
     @PrimaryKey
-    val messageReference: String? = null,
+    val messageReference: String,
     @ColumnInfo(name = "textMessage")
     val textMessage: String? = null,
     @ColumnInfo("senderUsername")

@@ -2,6 +2,7 @@ package com.simulatedtez.gochat.conversations.repository
 
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.conversations.ConversationDatabase
+import com.simulatedtez.gochat.conversations.Conversation_db
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
@@ -44,8 +45,20 @@ class ConversationsRepository(
             override fun onResponse(response: IResponse<ParentResponse<NewChatResponse>>) {
                when (response) {
                    is IResponse.Success -> {
-                       context.launch(Dispatchers.Main) {
-                           response.data.data?.let {
+                       response.data.data?.let {
+                           context.launch(Dispatchers.IO) {
+                               conversationDB.insertConversation(
+                                   Conversation_db(
+                                       otherUser = it.other,
+                                       chatReference = it.chatReference,
+                                       lastMessage = "",
+                                       timestamp = "",
+                                       unreadCount = 0,
+                                       contactAvi = ""
+                                   )
+                               )
+                           }
+                           context.launch(Dispatchers.Main) {
                                conversationsListener?.onNewChatAdded(it)
                            }
                        }

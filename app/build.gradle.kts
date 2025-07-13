@@ -1,9 +1,11 @@
 
 plugins {
-    kotlin("plugin.serialization") version "1.8.21"
+    kotlin("plugin.serialization") version "2.2.0"
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("org.jetbrains.kotlin.plugin.compose") version "2.2.0"
+
+    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 
@@ -25,12 +27,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://192.168.0.2:6060\"")
     }
 
     buildTypes {
         debug {
-            buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://192.168.0.2:6060\"")
+            buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://192.168.0.3:6060\"")
         }
         release {
             buildConfigField("String", "CHAT_HISTORY_BASE_URL", "\"http://gochat.com\"")
@@ -64,6 +65,8 @@ android {
 
 dependencies {
 
+    implementation(platform("androidx.compose:compose-bom:2024.04.01"))
+
     implementation(libs.androidx.multidex)
 
     // For Kotlin users
@@ -85,6 +88,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     // for annotation processing
     implementation(libs.androidx.lifecycle.runtime.ktx.v270)
+    ksp(libs.androidx.room.compiler)
 
     implementation(libs.napier.android)
     implementation(libs.kotlinx.coroutines.android)

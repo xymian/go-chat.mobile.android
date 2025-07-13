@@ -27,7 +27,7 @@ data class Message(
 
 fun Message.toMessage_db(): Message_db {
     return Message_db(
-        messageReference = messageReference,
+        messageReference = messageReference!!,
         senderUsername = sender,
         receiverUsername = receiverUsername,
         textMessage = message,

@@ -36,12 +36,11 @@ class ConversationDatabase private constructor(private val conversationsDao: Con
 
 @Entity(tableName = "conversations")
 data class Conversation_db(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long,
-    @ColumnInfo("otherUser")
-    val otherUser: String,
+    @PrimaryKey
     @ColumnInfo("chatReference")
     val chatReference: String,
+    @ColumnInfo("otherUser")
+    val otherUser: String,
     @ColumnInfo("lastMessage")
     val lastMessage: String = "",
     @ColumnInfo("timestamp")
@@ -72,7 +71,6 @@ interface ConversationDao {
 
 fun Conversation_db.toConversation(): Conversation {
     return Conversation(
-        id = id,
         me = session.username,
         other = otherUser,
         chatReference = chatReference,
