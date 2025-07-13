@@ -22,8 +22,8 @@ class LoginViewModel(
     private val loginRepository: LoginRepository,
 ): ViewModel(), LoginEventListener {
 
-    private val _isLoginSuccessful = MutableLiveData<Boolean>()
-    val isLoginSuccessful: LiveData<Boolean> = _isLoginSuccessful
+    private val _isLoginSuccessful = MutableLiveData<Boolean?>()
+    val isLoginSuccessful: LiveData<Boolean?> = _isLoginSuccessful
 
     private val _isLoggingIn = MutableLiveData<Boolean>()
     val isLoggingIn: LiveData<Boolean> = _isLoggingIn
@@ -38,12 +38,17 @@ class LoginViewModel(
 
     override fun onLoginFailed(errorResponse: IResponse.Failure<ParentResponse<LoginResponse>>) {
         _isLoggingIn.value = false
+        _isLoginSuccessful.value = false
     }
 
     override fun onLogin(loginInfo: LoginResponse) {
         session.saveAccessToken(loginInfo.accessToken)
         _isLoginSuccessful.value = true
         _isLoggingIn.value = false
+    }
+
+    fun resetLoginState() {
+        _isLoginSuccessful.postValue(null)
     }
 
     fun cancel() {

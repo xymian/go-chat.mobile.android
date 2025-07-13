@@ -3,9 +3,11 @@ package com.simulatedtez.gochat.conversations.repository
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.Conversation_db
+import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
+import com.simulatedtez.gochat.conversations.toConversations
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
@@ -30,6 +32,10 @@ class ConversationsRepository(
 
     fun setListener(listener: ConversationsListener) {
         conversationsListener = listener
+    }
+
+    suspend fun getConversations(): List<Conversation> {
+        return conversationDB.getConversations().toConversations()
     }
 
     suspend fun addNewChat(username: String, otherUser: String) {

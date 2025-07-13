@@ -72,8 +72,17 @@ fun NavController.ConversationsScreen() {
     val waiting by viewModel.waiting.observeAsState(false)
     val newConversation by viewModel.newConversation.observeAsState()
 
+    val conversationHistory by viewModel.conversations.observeAsState(listOf())
+
+    viewModel.fetchConversations()
+
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    LaunchedEffect(conversationHistory) {
+        conversations.clear()
+        conversations.addAll(conversationHistory)
+    }
 
     LaunchedEffect(newConversation) {
         newConversation?.let {

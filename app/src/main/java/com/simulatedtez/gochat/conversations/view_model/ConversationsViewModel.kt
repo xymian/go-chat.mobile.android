@@ -27,6 +27,15 @@ class ConversationsViewModel(
     private val _newConversation = MutableLiveData<Conversation>()
     val newConversation: LiveData<Conversation> = _newConversation
 
+    private val _conversations = MutableLiveData<List<Conversation>>()
+    val conversations: LiveData<List<Conversation>> = _conversations
+
+    fun fetchConversations() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _conversations.postValue(conversationsRepository.getConversations())
+        }
+    }
+
     fun addNewConversation(user: String, other: String) {
         _waiting.value = true
         viewModelScope.launch(Dispatchers.IO) {

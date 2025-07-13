@@ -17,6 +17,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,23 +51,37 @@ import com.simulatedtez.gochat.auth.repository.LoginRepository
 import com.simulatedtez.gochat.auth.view_model.LoginViewModel
 import com.simulatedtez.gochat.auth.view_model.LoginViewModelFactory
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun NavController.LoginScreen() {
 
+    val snackBarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     val viewModelFactory = remember { LoginViewModelFactory() }
     val loginViewModel: LoginViewModel = viewModel(factory = viewModelFactory)
 
-    val loginSuccess by loginViewModel.isLoginSuccessful.observeAsState(false)
+    val loginSuccess by loginViewModel.isLoginSuccessful.observeAsState()
     val loggingIn by loginViewModel.isLoggingIn.observeAsState(false)
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(loginSuccess) {
-        println("login success")
-        if (loginSuccess) {
-            navigate("conversations")
+        loginSuccess?.let {
+            if (loginSuccess == true) {
+                navigate("conversations")
+                loginViewModel.resetLoginState()
+            } else {
+                coroutineScope.launch {
+                    snackBarHostState.showSnackbar(
+                        message = "login failed",
+                        actionLabel = "dismiss"
+                    )
+                    loginViewModel.resetLoginState()
+                }
+            }
         }
     }
 
@@ -73,130 +93,134 @@ fun NavController.LoginScreen() {
         }
     }
 
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHostState) }
+    ) { padding ->
+        Surface(
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier.fillMaxSize()
         ) {
-
-            Text(
-                text = "Welcome Back!",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Login to your account",
-                fontSize = 16.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            TextButton(
-                onClick = {  },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text("Forgot Password?")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    loginViewModel.login(username, password)
-                },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Login", fontSize = 18.sp)
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    thickness = DividerDefaults.Thickness,
-                    color = DividerDefaults.color
-                )
                 Text(
-                    text = "OR",
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    color = Color.Gray
-                )
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    thickness = DividerDefaults.Thickness,
-                    color = DividerDefaults.color
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            OutlinedButton(
-                onClick = { },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(text = "Sign In with Google", color = MaterialTheme.colorScheme.primary)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Don't have an account? ")
-                Text(
-                    text = "Sign Up",
-                    color = MaterialTheme.colorScheme.primary,
+                    text = "Welcome Back!",
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable {
-                        navigate(AuthScreens.SIGNUP.name)
-                    }
+                    color = MaterialTheme.colorScheme.primary
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Login to your account",
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                TextButton(
+                    onClick = {  },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Forgot Password?")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        loginViewModel.login(username, password)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(text = "Login", fontSize = 18.sp)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        thickness = DividerDefaults.Thickness,
+                        color = DividerDefaults.color
+                    )
+                    Text(
+                        text = "OR",
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        color = Color.Gray
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        thickness = DividerDefaults.Thickness,
+                        color = DividerDefaults.color
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(text = "Sign In with Google", color = MaterialTheme.colorScheme.primary)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Don't have an account? ")
+                    Text(
+                        text = "Sign Up",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            navigate(AuthScreens.SIGNUP.name)
+                        }
+                    )
+                }
             }
         }
     }
