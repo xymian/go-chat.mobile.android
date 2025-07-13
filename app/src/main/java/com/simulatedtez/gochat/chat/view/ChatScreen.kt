@@ -40,11 +40,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.chat.view_model.ChatViewModel
+import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.formatTimestamp
 
 val sampleMessages = listOf(
@@ -94,6 +97,12 @@ val sampleMessages = listOf(
 @Composable
 fun NavController.ChatScreen(chatInfo: ChatInfo) {
     var messageText by remember { mutableStateOf("") }
+    
+    val chatViewModelProvider = remember { ChatViewModelProvider(
+        chatInfo = chatInfo, context
+    ) }
+
+    val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelProvider)
 
     Scaffold(
         topBar = {

@@ -16,8 +16,9 @@ class ChatRepository(
     getMissingMessagesUsecase: GetMissingMessagesUsecase,
     acknowledgeMessagesUsecase: AcknowledgeMessagesUsecase,
     private val chatDb: IChatStorage,
-    private val chatEventListener: ChatEventListener
 ): ChatServiceListener<Message> {
+
+    private var chatEventListener: ChatEventListener? = null
 
     private val chatService = ChatServiceManager.Builder<Message>()
         .setSocketURL(chatInfo.socketURL)
@@ -33,6 +34,10 @@ class ChatRepository(
 
     init {
         chatService.connect()
+    }
+
+    fun setChatEventListener(listener: ChatEventListener) {
+        chatEventListener = listener
     }
 
     fun sendMessage(message: Message) {
@@ -52,26 +57,26 @@ class ChatRepository(
     }
 
     override fun onConnect() {
-        chatEventListener.onConnect()
+        chatEventListener?.onConnect()
     }
 
     override fun onDisconnect() {
-        chatEventListener.onDisconnect()
+        chatEventListener?.onDisconnect()
     }
 
     override fun onError(error: ChatServiceError, message: String) {
-        chatEventListener.onError("error message: $message, error type: ${error.name}")
+        chatEventListener?.onError("error message: $message, error type: ${error.name}")
     }
 
     override fun onSend(message: Message) {
-        chatEventListener.onSend(message)
+        chatEventListener?.onSend(message)
     }
 
     override fun onReceive(messages: List<Message>) {
-        chatEventListener.onNewMessages(messages)
+        chatEventListener?.onNewMessages(messages)
     }
 
     override fun onReceive(message: Message) {
-        chatEventListener.onNewMessage(message)
+        chatEventListener?.onNewMessage(message)
     }
 }
