@@ -35,7 +35,7 @@ data class GetMissingMessagesParams(
     override val request: Request
 ): RemoteParams(headers, request) {
     class Headers(
-        val acccessToken: String,
+        val accessToken: String,
     )
     class Request(
         val chatReference: String,

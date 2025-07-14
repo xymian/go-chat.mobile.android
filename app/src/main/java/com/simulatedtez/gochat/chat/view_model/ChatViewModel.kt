@@ -23,6 +23,8 @@ import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 import java.util.Date
@@ -36,14 +38,18 @@ class ChatViewModel(
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
 
-    private val _newMessage = MutableLiveData<Message>()
-    val newMessage: LiveData<Message> = _newMessage
+    private val _newMessages = MutableStateFlow<HashSet<Message>>(hashSetOf())
+    val newMessages: StateFlow<HashSet<Message>> = _newMessages
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
     private val _sentMessage = MutableLiveData<Message>()
     val sentMessage: LiveData<Message> = _sentMessage
+
+    fun resetNewMessagesFlow() {
+        _newMessages.value = hashSetOf()
+    }
 
     fun sendMessage(message: String) {
         val message = Message(
@@ -95,17 +101,13 @@ class ChatViewModel(
     }
 
     override fun onNewMessages(messages: List<Message>) {
-        viewModelScope.launch {
-            messages.forEach {
-                _newMessage.postValue(it)
-            }
+        messages.forEach {
+            _newMessages.value = (_newMessages.value + it) as HashSet<Message>
         }
     }
 
     override fun onNewMessage(message: Message) {
-        viewModelScope.launch {
-            _newMessage.value = message
-        }
+        _newMessages.value = (_newMessages.value + message) as HashSet<Message>
     }
 
     fun cancel() {
@@ -121,7 +123,7 @@ class ChatViewModelProvider(
             CreateChatRoomUsecase(ChatApiService(client)),
             GetMissingMessagesUsecase(
                 params = GetMissingMessagesParams(
-                    headers = GetMissingMessagesParams.Headers(acccessToken = session.accessToken),
+                    headers = GetMissingMessagesParams.Headers(accessToken = session.accessToken),
                     request = GetMissingMessagesParams.Request(
                         chatReference = chatInfo.chatReference,
                         yourUsername = chatInfo.username

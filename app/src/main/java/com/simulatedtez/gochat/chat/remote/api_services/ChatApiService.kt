@@ -28,7 +28,7 @@ class ChatApiService(private val client: HttpClient): IChatApiService {
     override suspend fun getMissingMessages(params: GetMissingMessagesParams): IResponse<ParentResponse<List<Message>>> {
         return Response<ParentResponse<List<Message>>> {
             client.getWithBaseUrl("/messages/${params.request.chatReference}/${params.request.yourUsername}/unacknowledged") {
-                header(HttpHeaders.Authorization, "Bearer ${params.headers.acccessToken}")
+                header(HttpHeaders.Authorization, "Bearer ${params.headers.accessToken}")
             }
         }.invoke()
     }

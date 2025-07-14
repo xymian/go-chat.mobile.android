@@ -30,7 +30,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
@@ -45,6 +47,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -54,49 +59,6 @@ import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.view_model.ChatViewModel
 import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.formatTimestamp
-
-/*val sampleMessages = listOf(
-    Message(
-        id = "1",
-        messageReference = null,
-        message = "hey bob!",
-        sender = "alice",
-        receiverUsername = "bob",
-        timestamp = "2025-07-13T12:00:00Z",
-        chatReference = "chat123",
-        seenByReceiver = true
-    ),
-    Message(
-        id = "2",
-        messageReference = "1",
-        message = "hey alice! how’s it going?",
-        sender = session.username,
-        receiverUsername = "alice",
-        timestamp = "2025-07-13T12:00:05Z",
-        chatReference = "chat123",
-        seenByReceiver = true
-    ),
-    Message(
-        id = "3",
-        messageReference = "2",
-        message = "doing great, just working on a new app",
-        sender = "alice",
-        receiverUsername = "bob",
-        timestamp = "2025-07-13T12:00:12Z",
-        chatReference = "chat123",
-        seenByReceiver = true
-    ),
-    Message(
-        id = "4",
-        messageReference = "3",
-        message = "nice! what kind of app?",
-        sender = session.username,
-        receiverUsername = "alice",
-        timestamp = "2025-07-13T12:00:20Z",
-        chatReference = "chat123",
-        seenByReceiver = false
-    )
-)*/
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,10 +73,25 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelProvider)
     
-    val newMessage by chatViewModel.newMessage.observeAsState()
+    val newMessage by chatViewModel.newMessages.collectAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sentMessage.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(Unit) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                chatViewModel.stopListeningForMessages()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(sentMessage) {
         sentMessage?.let {
@@ -144,8 +121,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     }
 
     LaunchedEffect(newMessage) {
-        newMessage?.let {
-            messages.add(it)
+        newMessage.let {
+            messages.addAll(it)
+            chatViewModel.resetNewMessagesFlow()
         }
     }
 
@@ -231,13 +209,13 @@ fun MessageBubble(message: Message) {
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = message.message ?: "",
+                    text = message.message,
                     color = textColor
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = formatTimestamp(message.timestamp!!),
+                text = formatTimestamp(message.timestamp),
                 fontSize = 12.sp,
                 color = Color.Gray
             )
