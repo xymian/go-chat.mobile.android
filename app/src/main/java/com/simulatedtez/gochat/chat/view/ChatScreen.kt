@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -101,7 +102,7 @@ import com.simulatedtez.gochat.utils.formatTimestamp
 @Composable
 fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val messages = remember { mutableListOf<Message>() }
+    val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     
     val chatViewModelProvider = remember { ChatViewModelProvider(
@@ -112,8 +113,14 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     
     val newMessage by chatViewModel.newMessage.observeAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
-
+    val sentMessage by chatViewModel.sentMessage.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
+
+    LaunchedEffect(sentMessage) {
+        sentMessage?.let {
+            messages.add(it)
+        }
+    }
 
     LaunchedEffect(isConnected) {
         isConnected?.let {
@@ -149,6 +156,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 title = { Text(chatInfo.recipientsUsernames[0], fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = {
+                        chatViewModel.stopListeningForMessages()
                         navigateUp()
                     }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -165,7 +173,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 message = messageText,
                 onMessageChange = { messageText = it },
                 onSendClick = {
-                    // TODO: Handle sending message
+                    chatViewModel.sendMessage(messageText)
                     messageText = ""
                 }
             )

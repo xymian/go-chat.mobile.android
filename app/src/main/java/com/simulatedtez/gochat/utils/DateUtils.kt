@@ -1,6 +1,7 @@
 package com.simulatedtez.gochat.utils
 
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -15,4 +16,10 @@ fun formatTimestamp(isoString: String): String {
     } catch (e: Exception) {
         ""
     }
+}
+
+fun Date.toISOString(): String {
+    return SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()
+    ).format(this)
 }

@@ -75,11 +75,11 @@ data class Message_db(
 fun Message_db.toMessage(): Message {
     return Message(
         messageReference = messageReference,
-        sender = senderUsername,
-        receiverUsername = receiverUsername,
-        message = textMessage,
+        sender = senderUsername!!,
+        receiverUsername = receiverUsername!!,
+        message = textMessage!!,
         chatReference = chatReference,
-        timestamp = messageTimestamp,
+        timestamp = messageTimestamp!!,
         seenByReceiver = seenByReceiver
     )
 }

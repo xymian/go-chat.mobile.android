@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.chat.remote.api_usecases
 
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.chat.remote.models.AckResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -17,8 +18,7 @@ class AcknowledgeMessagesUsecase(
 
     override suspend fun call(data: List<Message>?, handler: ResponseCallback<AckResponse>) {
         data?.let { messages ->
-            val ackParams = createAckParams(messages.sortedBy { it.timestamp })
-            call(ackParams, handler)
+            call(createAckParams(messages), handler)
         }
     }
 
@@ -41,10 +41,10 @@ class AcknowledgeMessagesUsecase(
     private fun createAckParams(messages: List<Message>): AckParams {
         val sortedList = messages.sortedBy { it.timestamp }
         return AckParams(
-            headers = AckParams.Headers(accessToken = ""),
+            headers = AckParams.Headers(accessToken = session.accessToken),
             request = AckParams.Request(
-                from = sortedList.first().timestamp!!,
-                to = sortedList.last().timestamp!!,
+                from = sortedList.first().timestamp,
+                to = sortedList.last().timestamp,
                 chatReference = chatInfo.chatReference,
                 yourUsername = chatInfo.username
             )

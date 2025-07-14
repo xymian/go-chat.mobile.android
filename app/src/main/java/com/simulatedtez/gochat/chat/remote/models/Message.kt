@@ -12,13 +12,13 @@ data class Message(
     @SerialName("messageReference")
     val messageReference: String? = null,
     @SerialName("textMessage")
-    override val message: String? = null,
+    override val message: String,
     @SerialName("senderUsername")
-    override val sender: String? = null,
+    override val sender: String,
     @SerialName("receiverUsername")
-    val receiverUsername: String? = null,
+    val receiverUsername: String,
     @SerialName("messageTimestamp")
-    override val timestamp: String? = null,
+    override val timestamp: String,
     @SerialName("chatReference")
     val chatReference: String? = null,
     @SerialName("seenByReceiver")

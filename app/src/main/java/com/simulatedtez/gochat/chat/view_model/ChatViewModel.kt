@@ -19,13 +19,18 @@ import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.remote.client
+import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import okhttp3.Response
+import java.util.Date
+import java.util.UUID
 
 class ChatViewModel(
-    val chatRepo: ChatRepository
+    private val chatInfo: ChatInfo,
+    private val chatRepo: ChatRepository
 ): ViewModel(), ChatEventListener {
 
     private val _pagedMessages = MutableLiveData<ChatPage>()
@@ -37,13 +42,42 @@ class ChatViewModel(
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
+    private val _sentMessage = MutableLiveData<Message>()
+    val sentMessage: LiveData<Message> = _sentMessage
+
+    fun sendMessage(message: String) {
+        val message = Message(
+            id = "",
+            messageReference = UUID.randomUUID().toString(),
+            message = message,
+            sender = chatInfo.username,
+            receiverUsername = chatInfo.recipientsUsernames[0],
+            timestamp = Date().toISOString(),
+            chatReference = chatInfo.chatReference,
+            seenByReceiver = false
+        )
+        _sentMessage.value = message
+        viewModelScope.launch(Dispatchers.IO) {
+            chatRepo.sendMessage(message)
+        }
+    }
+
     fun loadMessages() {
         viewModelScope.launch(Dispatchers.IO) {
             _pagedMessages.value = chatRepo.loadNextPageMessages()
         }
     }
 
+    fun stopListeningForMessages() {
+        chatRepo.disconnect()
+    }
+
+    override fun onClose(code: Int, reason: String) {
+        _isConnected.value = false
+    }
+
     override fun onSend(message: Message) {
+        Napier.d("message: ${message.message} sent to ${chatInfo.recipientsUsernames[0]}")
     }
 
     override fun onConnect() {
@@ -51,7 +85,7 @@ class ChatViewModel(
         _isConnected.value = true
     }
 
-    override fun onDisconnect() {
+    override fun onDisconnect(t: Throwable, response: Response?) {
         Napier.d("socket disconnected")
         _isConnected.value = false
     }
@@ -63,7 +97,7 @@ class ChatViewModel(
     override fun onNewMessages(messages: List<Message>) {
         viewModelScope.launch {
             messages.forEach {
-                _newMessage.value = it
+                _newMessage.postValue(it)
             }
         }
     }
@@ -102,7 +136,7 @@ class ChatViewModelProvider(
             chatDb = ChatDatabase.get(context)
         )
 
-        val chatViewModel = ChatViewModel(repo).apply {
+        val chatViewModel = ChatViewModel(chatInfo, repo).apply {
             repo.setChatEventListener(this)
         }
         return chatViewModel as T

@@ -12,17 +12,14 @@ import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
-import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import io.github.aakira.napier.Napier
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.serialization.builtins.serializer
 import listeners.ChatServiceListener
 import okhttp3.Response
 
@@ -56,11 +53,15 @@ class ChatRepository(
         chatService.connect()
     }
 
+    fun disconnect() {
+        chatService.disconnect()
+    }
+
     fun setChatEventListener(listener: ChatEventListener) {
         chatEventListener = listener
     }
 
-    fun sendMessage(message: Message) {
+    suspend fun sendMessage(message: Message) {
         chatService.sendMessage(message)
     }
 
@@ -106,6 +107,10 @@ class ChatRepository(
         )
     }
 
+    override fun onClose(code: Int, reason: String) {
+        chatEventListener?.onClose(code, reason)
+    }
+
     override fun onConnect() {
         chatEventListener?.onConnect()
     }
@@ -120,7 +125,7 @@ class ChatRepository(
                 }
             } else -> {
             Napier.d(response?.message ?: "unknown")
-            chatEventListener?.onDisconnect()
+            chatEventListener?.onDisconnect(t, response)
             }
         }
     }
