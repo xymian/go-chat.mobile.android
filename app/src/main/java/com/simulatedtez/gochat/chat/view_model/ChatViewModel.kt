@@ -74,8 +74,16 @@ class ChatViewModel(
         }
     }
 
-    fun stopListeningForMessages() {
+    fun exitChat() {
         chatRepo.disconnect()
+    }
+
+    fun pauseChat() {
+        chatRepo.pauseChatService()
+    }
+
+    fun resumeChat() {
+        chatRepo.resumeChatService()
     }
 
     override fun onClose(code: Int, reason: String) {

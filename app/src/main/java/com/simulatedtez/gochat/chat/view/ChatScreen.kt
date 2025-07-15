@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,7 +65,7 @@ import com.simulatedtez.gochat.utils.formatTimestamp
 @Composable
 fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val messages = remember { mutableStateListOf<Message>() }
+    val messages = remember { mutableStateSetOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     
     val chatViewModelProvider = remember { ChatViewModelProvider(
@@ -81,8 +82,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(Unit) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                chatViewModel.stopListeningForMessages()
+
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    chatViewModel.pauseChat()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    chatViewModel.resumeChat()
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    chatViewModel.exitChat()
+                }
+                else -> {}
             }
         }
 
@@ -113,9 +124,15 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         pagedMessages?.let {
             if (it.paginationCount == 1) {
                 messages.clear()
-                messages.addAll(it.messages)
+                messages.apply {
+                    addAll(it.messages)
+                    sortedBy { m -> m.timestamp }
+                }
             } else {
-                messages.addAll(0, it.messages)
+                messages.apply {
+                    addAll(it.messages)
+                    sortedBy { m -> m.timestamp }
+                }
             }
         }
     }
@@ -134,7 +151,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 title = { Text(chatInfo.recipientsUsernames[0], fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = {
-                        chatViewModel.stopListeningForMessages()
+                        chatViewModel.exitChat()
                         navigateUp()
                     }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")

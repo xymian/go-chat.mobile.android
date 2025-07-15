@@ -57,6 +57,14 @@ class ChatRepository(
         chatService.disconnect()
     }
 
+    fun pauseChatService() {
+        chatService.pause()
+    }
+
+    fun resumeChatService() {
+        chatService.resume()
+    }
+
     fun setChatEventListener(listener: ChatEventListener) {
         chatEventListener = listener
     }
