@@ -151,7 +151,6 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 title = { Text(chatInfo.recipientsUsernames[0], fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = {
-                        chatViewModel.exitChat()
                         navigateUp()
                     }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
