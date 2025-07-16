@@ -4,6 +4,7 @@ import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.chat.remote.models.ChatHistoryResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.RemoteParams
 import utils.ChatEndpointCaller
 import utils.ResponseCallback
@@ -24,7 +25,7 @@ class GetMissingMessagesUsecase(
                 handler.onResponse(chatServiceRes)
             }
             else -> {
-                handler.onFailure((res as IResponse.Failure<List<Message>>).exception)
+                handler.onFailure((res as IResponse.Failure<ParentResponse<List<Message>>>).exception)
             }
         }
     }

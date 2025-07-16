@@ -1,25 +1,24 @@
 package com.simulatedtez.gochat.utils
 
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Date
-import java.util.Locale
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
+
 fun formatTimestamp(isoString: String): String {
     return try {
         val instant = Instant.parse(isoString)
-        SimpleDateFormat(
-            "HH:mm", Locale.getDefault()
-        ).format(instant)
+        DateTimeFormatter.ofPattern("HH:mm")
+            .withZone(ZoneOffset.UTC)
+            .format(instant)
     } catch (e: Exception) {
         ""
     }
 }
 
 fun Date.toISOString(): String {
-    return SimpleDateFormat(
-        "yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()
-    ).format(this)
+    return DateTimeFormatter.ofPattern(
+        "yyyy-MM-dd HH:mm:ss"
+    ).withZone(ZoneOffset.UTC).format(this.toInstant())
 }

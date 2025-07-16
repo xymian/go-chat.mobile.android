@@ -85,7 +85,7 @@ class ChatRepository(
         )
     }
 
-    suspend fun createNewChatRoom(onSuccess: (() -> Unit)? = null) {
+    suspend fun createNewChatRoom(onSuccess: (() -> Unit)) {
         val params = CreateChatRoomParams(
             CreateChatRoomParams.Headers(accessToken = session.accessToken),
             request = CreateChatRoomParams.Request(
@@ -99,9 +99,7 @@ class ChatRepository(
                 override fun onResponse(response: IResponse<String>) {
                     when(response) {
                         is IResponse.Success -> {
-                            context.launch(Dispatchers.Main) {
-                                onSuccess?.invoke()
-                            }
+                            onSuccess()
                         }
                         is IResponse.Failure -> {
                             Napier.d(response.response ?: "unknown")
@@ -132,8 +130,8 @@ class ChatRepository(
                     }
                 }
             } else -> {
-            Napier.d(response?.message ?: "unknown")
-            chatEventListener?.onDisconnect(t, response)
+                Napier.d(response?.message ?: "unknown")
+                chatEventListener?.onDisconnect(t, response)
             }
         }
     }
