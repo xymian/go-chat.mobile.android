@@ -31,7 +31,7 @@ class Response<R>(val call: suspend () -> HttpResponse): IResponse<R> {
                 data = data
             )
         } else {
-            IResponse.Failure(reason = response.status.description, response = response.bodyAsText())
+            IResponse.Failure(reason = response.status.description, response = data)
         }
     } catch (e: Exception) {
         IResponse.Failure(exception = e, e.message ?: "unknown reason :(")
@@ -46,6 +46,6 @@ sealed interface IResponse<R> {
     data class Failure<R>(
         val exception: Exception? = null,
         val reason: String,
-        val response: String? = null
+        val response: R? = null
     ): IResponse<R>
 }

@@ -75,7 +75,7 @@ class ChatViewModel(
     }
 
     fun exitChat() {
-        chatRepo.disconnect()
+        chatRepo.killChatService()
     }
 
     fun pauseChat() {
@@ -109,9 +109,7 @@ class ChatViewModel(
     }
 
     override fun onNewMessages(messages: List<Message>) {
-        messages.forEach {
-            _newMessages.value = (_newMessages.value + it) as HashSet<Message>
-        }
+        _newMessages.value = (_newMessages.value + messages) as HashSet<Message>
     }
 
     override fun onNewMessage(message: Message) {

@@ -19,6 +19,6 @@ fun formatTimestamp(isoString: String): String {
 
 fun Date.toISOString(): String {
     return DateTimeFormatter.ofPattern(
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd'T'HH:mm:ss'Z'"
     ).withZone(ZoneOffset.UTC).format(this.toInstant())
 }

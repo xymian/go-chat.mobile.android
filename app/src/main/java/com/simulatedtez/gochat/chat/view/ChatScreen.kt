@@ -100,6 +100,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
+            chatViewModel.exitChat()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

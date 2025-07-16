@@ -70,12 +70,12 @@ class ConversationsRepository(
                        }
                    }
                    is IResponse.Failure -> {
-                       conversationsListener?.onAddNewChatFailed(response.response ?: "unknown")
+                       context.launch(Dispatchers.Main) {
+                           conversationsListener?.onAddNewChatFailed(response)
+                       }
                    }
 
-                   is Response<*> -> {
-                       conversationsListener?.onAddNewChatFailed( "unknown")
-                   }
+                   is Response<*> -> {}
                }
             }
         })
@@ -87,6 +87,6 @@ class ConversationsRepository(
 }
 
 interface ConversationsListener {
-    fun onAddNewChatFailed(error: String)
+    fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>)
     fun onNewChatAdded(chat: NewChatResponse)
 }

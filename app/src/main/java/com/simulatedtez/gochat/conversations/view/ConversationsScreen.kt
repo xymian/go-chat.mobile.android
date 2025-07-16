@@ -27,6 +27,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -65,6 +67,8 @@ import io.ktor.websocket.Frame
 @Composable
 fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions) {
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val conversations = remember { mutableStateListOf<Conversation>() }
 
     val viewModelFactory = remember { ConversationsViewModelProvider(context) }
@@ -72,13 +76,20 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
     val waiting by viewModel.waiting.observeAsState(false)
     val newConversation by viewModel.newConversation.observeAsState()
-
     val conversationHistory by viewModel.conversations.observeAsState(listOf())
+    val errorMessage by viewModel.errorMessage.observeAsState()
 
     viewModel.fetchConversations()
 
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            showBottomSheet = false
+            snackbarHostState.showSnackbar(it)
+        }
+    }
 
     LaunchedEffect(conversationHistory) {
         conversations.clear()
@@ -88,10 +99,12 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     LaunchedEffect(newConversation) {
         newConversation?.let {
             conversations.add(it)
+            showBottomSheet = false
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Frame.Text("Chats") },
@@ -235,7 +248,7 @@ fun NewChatSheetContent(isEnabled:Boolean, onAddClick: (String) -> Unit) {
         Button(
             onClick = { onAddClick(username) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = username.isNotBlank() || isEnabled
+            enabled = username.isNotBlank() && isEnabled
         ) {
             Text("Add")
         }

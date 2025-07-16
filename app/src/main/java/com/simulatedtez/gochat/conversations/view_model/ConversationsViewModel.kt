@@ -13,7 +13,10 @@ import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatUse
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
 import com.simulatedtez.gochat.conversations.repository.ConversationsListener
 import com.simulatedtez.gochat.conversations.repository.ConversationsRepository
+import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.client
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -30,6 +33,9 @@ class ConversationsViewModel(
     private val _conversations = MutableLiveData<List<Conversation>>()
     val conversations: LiveData<List<Conversation>> = _conversations
 
+    private val _errorMessage = MutableLiveData<String>()
+    val errorMessage: LiveData<String> = _errorMessage
+
     fun fetchConversations() {
         viewModelScope.launch(Dispatchers.IO) {
             _conversations.postValue(conversationsRepository.getConversations())
@@ -43,8 +49,11 @@ class ConversationsViewModel(
         }
     }
 
-    override fun onAddNewChatFailed(error: String) {
+    override fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>) {
         _waiting.value = false
+        if (error.response?.statusCode == HttpStatusCode.NotFound.value) {
+            _errorMessage.value = error.response.message
+        }
     }
 
     override fun onNewChatAdded(chat: NewChatResponse) {

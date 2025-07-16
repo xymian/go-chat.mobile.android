@@ -34,7 +34,7 @@ class ChatRepository(
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private var chatEventListener: ChatEventListener? = null
-    private val chatService = ChatServiceManager.Builder<Message>()
+    private var chatService = ChatServiceManager.Builder<Message>()
         .setSocketURL(
             "${BuildConfig.WEBSOCKET_BASE_URL}/room/${chatInfo.chatReference}" +
                     "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}"
@@ -53,8 +53,9 @@ class ChatRepository(
         chatService.connect()
     }
 
-    fun disconnect() {
-        chatService.disconnect()
+    fun killChatService() {
+        chatService = ChatServiceManager.Builder<Message>()
+            .build(Message.serializer())
     }
 
     fun pauseChatService() {
@@ -145,7 +146,9 @@ class ChatRepository(
     }
 
     override fun onReceive(messages: List<Message>) {
-        chatEventListener?.onNewMessages(messages)
+        if (messages.isNotEmpty()) {
+            chatEventListener?.onNewMessages(messages)
+        }
     }
 
     override fun onReceive(message: Message) {
