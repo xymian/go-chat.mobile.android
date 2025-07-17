@@ -70,8 +70,12 @@ class ChatViewModel(
 
     fun loadMessages() {
         viewModelScope.launch(Dispatchers.IO) {
-            _pagedMessages.value = chatRepo.loadNextPageMessages()
+            _pagedMessages.postValue(chatRepo.loadNextPageMessages())
         }
+    }
+
+    fun connectToChatService() {
+        chatRepo.connectToChatService()
     }
 
     fun exitChat() {

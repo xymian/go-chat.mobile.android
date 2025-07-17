@@ -49,11 +49,12 @@ class ChatRepository(
 
     private var timesPaginated = 0
 
-    init {
+    fun connectToChatService() {
         chatService.connect()
     }
 
     fun killChatService() {
+        chatService.disconnect()
         chatService = ChatServiceManager.Builder<Message>()
             .build(Message.serializer())
     }
@@ -75,7 +76,7 @@ class ChatRepository(
     }
 
     suspend fun loadNextPageMessages(): ChatPage {
-        val messages = chatDb.loadNextPage()
+        val messages = chatDb.loadNextPage(chatInfo.chatReference)
         if (messages.isNotEmpty()) {
             timesPaginated++
         }

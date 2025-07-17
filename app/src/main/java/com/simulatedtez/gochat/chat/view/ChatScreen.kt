@@ -64,15 +64,17 @@ import com.simulatedtez.gochat.utils.formatTimestamp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavController.ChatScreen(chatInfo: ChatInfo) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val messages = remember { mutableStateSetOf<Message>() }
-    var messageText by remember { mutableStateOf("") }
-    
+
     val chatViewModelProvider = remember { ChatViewModelProvider(
         chatInfo = chatInfo, context
     ) }
-
     val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelProvider)
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val messages = remember { mutableStateSetOf<Message>() }
+    var messageText by remember { mutableStateOf("") }
+    var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
     
     val newMessage by chatViewModel.newMessages.collectAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
@@ -84,11 +86,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         val observer = LifecycleEventObserver { _, event ->
 
             when (event) {
+                Lifecycle.Event.ON_CREATE -> {
+                    chatViewModel.loadMessages()
+                }
                 Lifecycle.Event.ON_PAUSE -> {
-                    chatViewModel.pauseChat()
+                    if (hasFinishedInitialMessagesLoad) {
+                        chatViewModel.pauseChat()
+                    }
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    chatViewModel.resumeChat()
+                    if (hasFinishedInitialMessagesLoad) {
+                        chatViewModel.resumeChat()
+                    }
                 }
                 Lifecycle.Event.ON_DESTROY -> {
                     chatViewModel.exitChat()
@@ -135,6 +144,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     sortedBy { m -> m.timestamp }
                 }
             }
+            hasFinishedInitialMessagesLoad = true
         }
     }
 
@@ -240,7 +250,6 @@ fun MessageBubble(message: Message) {
     }
 }
 
-// Composable for the message input bar at the bottom
 @Composable
 fun MessageInputBar(
     message: String,
@@ -253,7 +262,7 @@ fun MessageInputBar(
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(

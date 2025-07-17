@@ -24,7 +24,7 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
     ).format(Date())
 
     companion object {
-        private const val PAGE_SIZE = 50
+        private const val PAGE_SIZE = 1000
 
         fun get(context: Context): ChatDatabase {
             return synchronized(this) {
@@ -32,13 +32,13 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
             }
         }
     }
-    override suspend fun loadNextPage(): List<Message> {
+    override suspend fun loadNextPage(chatRef: String): List<Message> {
         return timestampsOfLastMessageInPages.let { topMessageTimestamp ->
-            messagesDao.getMessages(topMessageTimestamp, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
+            messagesDao.getMessages(chatRef = chatRef, topMessageTimestamp, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
                 it.timestamp
             }.also {
                 if (it.isNotEmpty()) {
-                    timestampsOfLastMessageInPages = it.first().timestamp!!
+                    timestampsOfLastMessageInPages = it.first().timestamp
                 }
             }
         }
@@ -101,8 +101,8 @@ interface MessagesDao {
     suspend fun insertMessages(messages: List<Message_db>)
 
     @Query("SELECT * FROM messages WHERE " +
-            "messageTimestamp < :startTimestamp ORDER BY messageTimestamp DESC LIMIT :size")
-    suspend fun getMessages(startTimestamp: String, size: Int): List<Message_db>
+            "chatReference =:chatRef AND messageTimestamp < :startTimestamp ORDER BY messageTimestamp DESC LIMIT :size")
+    suspend fun getMessages(chatRef: String, startTimestamp: String, size: Int): List<Message_db>
 
     @Query("SELECT * FROM messages ORDER BY messageTimestamp DESC LIMIT 1")
     suspend fun getLastMessage(): Message_db
