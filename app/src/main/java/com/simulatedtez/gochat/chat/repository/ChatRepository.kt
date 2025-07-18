@@ -1,9 +1,9 @@
 package com.simulatedtez.gochat.chat.repository
 
-import ChatServiceError
+import ChatServiceErrorResponse
 import ChatServiceManager
 import com.simulatedtez.gochat.BuildConfig
-import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
@@ -49,6 +49,7 @@ class ChatRepository(
         .build(Message.serializer())
 
     private var timesPaginated = 0
+    private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
 
     fun connectToChatService() {
         chatService.connect()
@@ -90,7 +91,6 @@ class ChatRepository(
 
     suspend fun createNewChatRoom(onSuccess: (() -> Unit)) {
         val params = CreateChatRoomParams(
-            CreateChatRoomParams.Headers(accessToken = session.accessToken),
             request = CreateChatRoomParams.Request(
                 user = chatInfo.username,
                 other = chatInfo.recipientsUsernames[0],
@@ -139,8 +139,8 @@ class ChatRepository(
         }
     }
 
-    override fun onError(error: ChatServiceError, message: String) {
-        chatEventListener?.onError("error message: $message, error type: ${error.name}")
+    override fun onError(response: ChatServiceErrorResponse) {
+        chatEventListener?.onError(response)
     }
 
     override fun onSend(message: Message) {
@@ -149,11 +149,23 @@ class ChatRepository(
 
     override fun onReceive(messages: List<Message>) {
         if (messages.isNotEmpty()) {
-            chatEventListener?.onNewMessages(messages)
+            if (!isNewChat) {
+                chatEventListener?.onNewMessages(messages)
+            } else {
+                UserPreference.storeChatHistoryStatus(
+                    chatInfo.chatReference, false)
+                isNewChat = false
+            }
         }
     }
 
     override fun onReceive(message: Message) {
-        chatEventListener?.onNewMessage(message)
+        if (!isNewChat) {
+            chatEventListener?.onNewMessage(message)
+        } else {
+            UserPreference.storeChatHistoryStatus(
+                chatInfo.chatReference, false)
+            isNewChat = false
+        }
     }
 }

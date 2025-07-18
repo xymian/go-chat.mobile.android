@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.auth.remote.api_services.AuthApiService
 import com.simulatedtez.gochat.auth.remote.api_usecases.LoginUsecase
 import com.simulatedtez.gochat.auth.remote.models.LoginResponse
@@ -29,7 +30,6 @@ class LoginViewModel(
     val isLoggingIn: LiveData<Boolean> = _isLoggingIn
 
     fun login(username: String, password: String) {
-        session.saveUsername(username)
         _isLoggingIn.value = true
         viewModelScope.launch(Dispatchers.IO) {
             loginRepository.login(username, password)
@@ -42,6 +42,7 @@ class LoginViewModel(
     }
 
     override fun onLogin(loginInfo: LoginResponse) {
+        UserPreference.storeAccessToken(loginInfo.accessToken)
         session.saveAccessToken(loginInfo.accessToken)
         _isLoginSuccessful.value = true
         _isLoggingIn.value = false

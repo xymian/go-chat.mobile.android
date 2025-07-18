@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.chat.remote.api_services
 
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.remote.api_usecases.AckParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
@@ -19,7 +20,7 @@ class ChatApiService(private val client: HttpClient): IChatApiService {
     override suspend fun createChatRoom(params: CreateChatRoomParams): IResponse<String> {
         return Response<String> {
             client.postWithBaseUrl("/chat") {
-                header(HttpHeaders.Authorization, "Bearer ${params.headers.accessToken}")
+                header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
                 setBody(params.request)
             }
         }.invoke()
@@ -28,7 +29,7 @@ class ChatApiService(private val client: HttpClient): IChatApiService {
     override suspend fun getMissingMessages(params: GetMissingMessagesParams): IResponse<ParentResponse<List<Message>>> {
         return Response<ParentResponse<List<Message>>> {
             client.getWithBaseUrl("/messages/${params.request.chatReference}/${params.request.yourUsername}/unacknowledged") {
-                header(HttpHeaders.Authorization, "Bearer ${params.headers.accessToken}")
+                header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
             }
         }.invoke()
     }
@@ -36,7 +37,7 @@ class ChatApiService(private val client: HttpClient): IChatApiService {
     override suspend fun acknowledgeMessage(params: AckParams): IResponse<ParentResponse<List<Message>>> {
         return Response<ParentResponse<List<Message>>> {
             client.postWithBaseUrl("/messages/acknowledge") {
-                header(HttpHeaders.Authorization, "Bearer ${params.headers.accessToken}")
+                header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
                 setBody(params.request)
             }
         }.invoke()

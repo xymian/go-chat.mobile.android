@@ -58,7 +58,6 @@ class ConversationsViewModel(
 
     override fun onNewChatAdded(chat: NewChatResponse) {
         _newConversation.value = Conversation(
-            me = "me",
             other = chat.other,
             chatReference = chat.chatReference
         )

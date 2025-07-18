@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.chat.repository
 
+import ChatServiceErrorResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
 import okhttp3.Response
 
@@ -8,7 +9,7 @@ interface ChatEventListener {
     fun onSend(message: Message)
     fun onConnect()
     fun onDisconnect(t: Throwable, response: Response?)
-    fun onError(message: String)
+    fun onError(error: ChatServiceErrorResponse)
     fun onNewMessages(messages: List<Message>)
     fun onNewMessage(message: Message)
 }

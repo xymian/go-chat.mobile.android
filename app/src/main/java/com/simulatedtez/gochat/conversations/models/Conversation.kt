@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Conversation(
-    val me: String,
     val other: String,
     val chatReference: String,
     val lastMessage: String = "",

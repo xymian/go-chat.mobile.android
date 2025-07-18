@@ -1,11 +1,13 @@
 package com.simulatedtez.gochat.chat.remote.api_usecases
 
-import com.simulatedtez.gochat.Session.Companion.session
+import ChatServiceErrorResponse
 import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.chat.remote.models.AckResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.ParentResponse
+import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import utils.ChatEndpointCallerWithData
@@ -34,14 +36,21 @@ class AcknowledgeMessagesUsecase(
                 message = null
             ))
         } else {
-            chatServiceHandler.onFailure(null)
+            val error = (res as IResponse.Failure<ParentResponse<List<Message>>>)
+            chatServiceHandler.onFailure(
+                ChatServiceErrorResponse(
+                    statusCode = error.response?.statusCode ?: HttpStatusCode.NotFound.value,
+                    exception = error.exception,
+                    reason = error.reason,
+                    message = ""
+                )
+            )
         }
     }
 
     private fun createAckParams(messages: List<Message>): AckParams {
         val sortedList = messages.sortedBy { it.timestamp }
         return AckParams(
-            headers = AckParams.Headers(accessToken = session.accessToken),
             request = AckParams.Request(
                 from = sortedList.first().timestamp,
                 to = sortedList.last().timestamp,
@@ -53,12 +62,8 @@ class AcknowledgeMessagesUsecase(
 }
 
 data class AckParams(
-    val headers: Headers,
     val request: Request
 ) {
-    class Headers(
-        val accessToken: String,
-    )
 
     @Serializable
     class Request(

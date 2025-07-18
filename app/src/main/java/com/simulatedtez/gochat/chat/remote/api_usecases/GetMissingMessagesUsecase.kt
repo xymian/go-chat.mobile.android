@@ -1,11 +1,13 @@
 package com.simulatedtez.gochat.chat.remote.api_usecases
 
+import ChatServiceErrorResponse
 import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.chat.remote.models.ChatHistoryResponse
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.RemoteParams
+import io.ktor.http.HttpStatusCode
 import utils.ChatEndpointCaller
 import utils.ResponseCallback
 
@@ -25,19 +27,23 @@ class GetMissingMessagesUsecase(
                 handler.onResponse(chatServiceRes)
             }
             else -> {
-                handler.onFailure((res as IResponse.Failure<ParentResponse<List<Message>>>).exception)
+                val error = (res as IResponse.Failure<ParentResponse<List<Message>>>)
+                handler.onFailure(
+                    ChatServiceErrorResponse(
+                        statusCode = error.response?.statusCode ?: HttpStatusCode.NotFound.value,
+                        exception = error.exception,
+                        reason = error.reason,
+                        message = ""
+                    )
+                )
             }
         }
     }
 }
 
 data class GetMissingMessagesParams(
-    override val headers: Headers,
     override val request: Request
-): RemoteParams(headers, request) {
-    class Headers(
-        val accessToken: String,
-    )
+): RemoteParams(request = request) {
     class Request(
         val chatReference: String,
         val yourUsername: String,

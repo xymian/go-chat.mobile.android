@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.chat.view_model
 
+import ChatServiceErrorResponse
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -21,6 +22,7 @@ import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.remote.client
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +48,13 @@ class ChatViewModel(
 
     private val _sentMessage = MutableLiveData<Message>()
     val sentMessage: LiveData<Message> = _sentMessage
+
+    private val _tokenExpired = MutableLiveData<Boolean>()
+    val tokenExpired: LiveData<Boolean> = _tokenExpired
+
+    fun resetTokenExpired() {
+        _tokenExpired.value = false
+    }
 
     fun resetNewMessagesFlow() {
         _newMessages.value = hashSetOf()
@@ -108,8 +117,11 @@ class ChatViewModel(
         _isConnected.value = false
     }
 
-    override fun onError(message: String) {
-        Napier.d(message)
+    override fun onError(error: ChatServiceErrorResponse) {
+        Napier.d(error.reason)
+        if (error.statusCode == HttpStatusCode.Unauthorized.value) {
+            _tokenExpired.value = true
+        }
     }
 
     override fun onNewMessages(messages: List<Message>) {
@@ -133,7 +145,6 @@ class ChatViewModelProvider(
             CreateChatRoomUsecase(ChatApiService(client)),
             GetMissingMessagesUsecase(
                 params = GetMissingMessagesParams(
-                    headers = GetMissingMessagesParams.Headers(accessToken = session.accessToken),
                     request = GetMissingMessagesParams.Request(
                         chatReference = chatInfo.chatReference,
                         yourUsername = chatInfo.username

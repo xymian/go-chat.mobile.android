@@ -57,6 +57,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.GoChatApplication
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.view_model.ChatViewModel
@@ -86,6 +87,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sentMessage.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
+    val tokenExpired by chatViewModel.tokenExpired.observeAsState()
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
@@ -131,6 +133,15 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         onDispose {
             chatViewModel.exitChat()
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(tokenExpired) {
+        tokenExpired?.let {
+            if (it) {
+                navigate(AuthScreens.LOGIN.name)
+                chatViewModel.resetTokenExpired()
+            }
         }
     }
 

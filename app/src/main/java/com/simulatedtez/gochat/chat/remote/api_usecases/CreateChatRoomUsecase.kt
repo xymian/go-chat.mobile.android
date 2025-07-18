@@ -20,10 +20,8 @@ class CreateChatRoomUsecase(
 }
 
 data class CreateChatRoomParams(
-    override val headers: Headers,
     override val request: Request
-): RemoteParams(headers, request) {
-    data class Headers(val accessToken: String)
+): RemoteParams(request = request) {
 
     @Serializable
     data class Request(

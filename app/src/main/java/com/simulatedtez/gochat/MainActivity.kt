@@ -10,7 +10,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.auth.view.LoginScreen
@@ -39,7 +38,13 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = AuthScreens.LOGIN.name) {
+    val startDestination = if (UserPreference.getAccessToken() != null) {
+        ChatScreens.CONVERSATIONS.name
+    } else {
+        AuthScreens.LOGIN.name
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(AuthScreens.LOGIN.name) {
             navController.LoginScreen()
         }

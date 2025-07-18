@@ -159,7 +159,7 @@ fun ChatItem(chat: Conversation, screenActions: ConversationsScreenActions) {
             .clickable {
                 screenActions.onChatClicked(
                     ChatInfo(
-                        username = chat.me,
+                        username = session.username,
                         recipientsUsernames = listOf(chat.other),
                         chatReference = chat.chatReference
                     )

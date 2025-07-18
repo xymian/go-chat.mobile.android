@@ -1,5 +1,7 @@
 package com.simulatedtez.gochat.auth.repository
 
+import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.auth.remote.api_usecases.LoginParams
 import com.simulatedtez.gochat.auth.remote.api_usecases.LoginUsecase
 import com.simulatedtez.gochat.auth.remote.models.LoginResponse
@@ -22,6 +24,8 @@ class LoginRepository(
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun login(username: String, password: String) {
+        UserPreference.storeUsername(username)
+        session.saveUsername(username)
         val loginParams = LoginParams(
             request = LoginParams.Request(
                 username = username,

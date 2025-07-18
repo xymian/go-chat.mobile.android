@@ -23,13 +23,8 @@ class StartNewChatUsecase(
 }
 
 data class StartNewChatParams(
-    override val headers: Headers,
     override val request: Request
-): RemoteParams(headers, request) {
-
-    class Headers(
-        val accessToken: String
-    )
+): RemoteParams(request = request) {
 
     @Serializable
     class Request(

@@ -71,7 +71,6 @@ interface ConversationDao {
 
 fun Conversation_db.toConversation(): Conversation {
     return Conversation(
-        me = session.username,
         other = otherUser,
         chatReference = chatReference,
         lastMessage = lastMessage,

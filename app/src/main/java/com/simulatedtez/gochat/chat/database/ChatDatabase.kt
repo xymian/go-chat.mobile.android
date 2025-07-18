@@ -32,6 +32,9 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
             }
         }
     }
+    override suspend fun isEmpty(chatRef: String): Boolean {
+        return messagesDao.getAny(chatRef) != null
+    }
     override suspend fun loadNextPage(chatRef: String): List<Message> {
         return timestampsOfLastMessageInPages.let { topMessageTimestamp ->
             messagesDao.getMessages(chatRef = chatRef, topMessageTimestamp, pageSize ?: PAGE_SIZE).toMessages().sortedBy {
@@ -104,6 +107,9 @@ interface MessagesDao {
             "chatReference =:chatRef AND messageTimestamp < :startTimestamp ORDER BY messageTimestamp DESC LIMIT :size")
     suspend fun getMessages(chatRef: String, startTimestamp: String, size: Int): List<Message_db>
 
-    @Query("SELECT * FROM messages ORDER BY messageTimestamp DESC LIMIT 1")
-    suspend fun getLastMessage(): Message_db
+    @Query("SELECT * FROM messages WHERE chatReference =:chatRef ORDER BY messageTimestamp DESC LIMIT 1")
+    suspend fun getLastMessage(chatRef: String): Message_db?
+
+    @Query("SELECT * FROM messages WHERE chatReference =:chatRef LIMIT 1")
+    suspend fun getAny(chatRef: String): Message_db?
 }

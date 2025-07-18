@@ -1,6 +1,7 @@
 package com.simulatedtez.gochat
 
 import android.app.Application
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 
@@ -10,6 +11,13 @@ class GoChatApplication: Application(), INetworkMonitor {
 
     override fun onCreate() {
         super.onCreate()
+        UserPreference.init(applicationContext)
+        UserPreference.getUsername()?.let {
+            session.saveUsername(it)
+        }
+        UserPreference.getAccessToken()?.let {
+            session.saveAccessToken(it)
+        }
         networkMonitor = NetworkMonitor(this.applicationContext)
         networkMonitor.start()
     }
