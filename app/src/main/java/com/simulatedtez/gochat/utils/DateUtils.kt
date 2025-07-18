@@ -9,8 +9,8 @@ import java.util.Date
 fun formatTimestamp(isoString: String): String {
     return try {
         val instant = Instant.parse(isoString)
-        DateTimeFormatter.ofPattern("HH:mm")
-            .withZone(ZoneOffset.UTC)
+        DateTimeFormatter.ofPattern("hh:mm a")
+            .withZone(ZoneOffset.systemDefault())
             .format(instant)
     } catch (e: Exception) {
         ""
@@ -20,5 +20,5 @@ fun formatTimestamp(isoString: String): String {
 fun Date.toISOString(): String {
     return DateTimeFormatter.ofPattern(
         "yyyy-MM-dd'T'HH:mm:ss'Z'"
-    ).withZone(ZoneOffset.UTC).format(this.toInstant())
+    ).withZone(ZoneOffset.systemDefault()).format(this.toInstant())
 }

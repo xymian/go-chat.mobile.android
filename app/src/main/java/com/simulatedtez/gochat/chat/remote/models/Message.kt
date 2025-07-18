@@ -18,7 +18,7 @@ data class Message(
     @SerialName("receiverUsername")
     val receiverUsername: String,
     @SerialName("messageTimestamp")
-    override val timestamp: String,
+    override var timestamp: String,
     @SerialName("chatReference")
     val chatReference: String? = null,
     @SerialName("seenByReceiver")

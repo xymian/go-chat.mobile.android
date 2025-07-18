@@ -40,6 +40,7 @@ class ChatRepository(
                     "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}"
         )
         .setUsername(chatInfo.username)
+        .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setMissingMessagesCaller(getMissingMessagesUsecase)
         .setMessageAckCaller(acknowledgeMessagesUsecase)

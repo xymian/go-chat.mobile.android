@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,16 +55,21 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.simulatedtez.gochat.GoChatApplication
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.view_model.ChatViewModel
 import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
+import com.simulatedtez.gochat.utils.INetworkMonitor
+import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavController.ChatScreen(chatInfo: ChatInfo) {
+
+    val app = LocalContext.current.applicationContext as GoChatApplication
 
     val chatViewModelProvider = remember { ChatViewModelProvider(
         chatInfo = chatInfo, context
@@ -80,6 +86,20 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sentMessage.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
+
+    val networkCallbacks = object: NetworkMonitor.Callbacks {
+        override fun onAvailable() {
+            if (hasFinishedInitialMessagesLoad)
+                chatViewModel.resumeChat()
+        }
+
+        override fun onLost() {
+            if (hasFinishedInitialMessagesLoad) {
+                chatViewModel.pauseChat()
+            }
+        }
+    }
+    (app as INetworkMonitor).setCallback(networkCallbacks)
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(Unit) {
