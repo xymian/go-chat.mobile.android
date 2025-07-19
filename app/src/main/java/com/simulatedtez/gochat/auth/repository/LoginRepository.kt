@@ -14,14 +14,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import okhttp3.Dispatcher
 
 class LoginRepository(
     private val loginUsecase: LoginUsecase,
 ) {
     private var loginEventListener: LoginEventListener? = null
 
-    private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun login(username: String, password: String) {
         UserPreference.storeUsername(username)
@@ -38,7 +37,7 @@ class LoginRepository(
                 override fun onResponse(response: IResponse<ParentResponse<LoginResponse>>) {
                     when (response) {
                         is IResponse.Success -> {
-                            context.launch(Dispatchers.Main) {
+                            scope.launch(Dispatchers.Main) {
                                 response.data.data?.let {
                                     loginEventListener?.onLogin(it)
                                 }
@@ -46,7 +45,7 @@ class LoginRepository(
                             // cache login details
                         }
                         is IResponse.Failure -> {
-                            context.launch(Dispatchers.Main) {
+                            scope.launch(Dispatchers.Main) {
                                 loginEventListener?.onLoginFailed(response)
                             }
                         }
@@ -63,7 +62,7 @@ class LoginRepository(
     }
 
     fun cancel() {
-        context.cancel()
+        scope.cancel()
     }
 }
 

@@ -38,6 +38,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +65,8 @@ import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +84,8 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val messages = remember { mutableStateSetOf<Message>() }
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
+    var resolvingMessageConflicts by remember { mutableStateOf<Boolean>(false) }
+    var temporaryMessageBucket = mutableSetOf<Message>()
     
     val newMessages by chatViewModel.newMessages.collectAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
@@ -88,6 +93,8 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
     val conflictingMessages by chatViewModel.conflictingMessages.observeAsState()
+
+    val coroutineScope = rememberCoroutineScope()
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
@@ -137,11 +144,16 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }
     }
 
+    LaunchedEffect(resolvingMessageConflicts) {
+        temporaryMessageBucket = mutableSetOf()
+    }
+
     LaunchedEffect(conflictingMessages) {
-        //TODO: consider merge instead of replace
-        conflictingMessages?.let { msgs ->
+        //TODO (for myself): consider merge instead of replace
+        conflictingMessages?.let { conflictingMsgs ->
+            resolvingMessageConflicts = true
             val newMessages = messages.toMutableList()
-            msgs.forEach { newMsg ->
+            conflictingMsgs.forEach { newMsg ->
                 val indexOfMessage = newMessages.indexOfFirst { uiMsg ->
                     uiMsg.messageReference == newMsg.messageReference
                 }
@@ -152,7 +164,10 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 }
             }
             messages.clear()
-            messages.addAll(newMessages.sortedBy { it.timestamp })
+            messages.addAll(
+                (newMessages + temporaryMessageBucket).sortedBy { it.timestamp }
+            )
+            resolvingMessageConflicts = false
         }
     }
 
@@ -212,6 +227,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(newMessages) {
         newMessages.let {
             messages.addAll(it)
+            if (resolvingMessageConflicts) {
+                temporaryMessageBucket.addAll(newMessages)
+            }
             chatViewModel.resetNewMessagesFlow()
         }
     }
