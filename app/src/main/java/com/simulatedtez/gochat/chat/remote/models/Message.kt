@@ -6,34 +6,35 @@ import kotlinx.serialization.Serializable
 import models.ComparableMessage
 
 @Serializable
-data class Message(
+open class Message(
     @SerialName("id")
-    val id: String? = null,
+    val id: String,
     @SerialName("messageReference")
-    val messageReference: String? = null,
+    open val messageReference: String,
     @SerialName("textMessage")
     override val message: String,
     @SerialName("senderUsername")
     override val sender: String,
     @SerialName("receiverUsername")
-    val receiverUsername: String,
+    open val receiverUsername: String,
     @SerialName("messageTimestamp")
     override var timestamp: String,
     @SerialName("chatReference")
-    val chatReference: String? = null,
+    open val chatReference: String,
     @SerialName("seenByReceiver")
-    val seenByReceiver: Boolean,
+    open val seenByReceiver: Boolean? = null,
 ): ComparableMessage()
 
 fun Message.toMessage_db(): Message_db {
     return Message_db(
-        messageReference = messageReference!!,
-        senderUsername = sender,
+        messageReference = messageReference,
+        sender = sender,
         receiverUsername = receiverUsername,
-        textMessage = message,
+        message = message,
         chatReference = chatReference,
-        messageTimestamp = timestamp,
-        seenByReceiver = seenByReceiver
+        timestamp = timestamp,
+        seenByReceiver = seenByReceiver,
+        isSent = null
     )
 }
 

@@ -87,6 +87,10 @@ class ChatViewModel(
         chatRepo.connectToChatService()
     }
 
+    fun connectAndSendPendingMessages() {
+        chatRepo.connectAndSendPendingMessages()
+    }
+
     fun exitChat() {
         chatRepo.killChatService()
     }

@@ -5,6 +5,7 @@ import ChatServiceManager
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
+import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -12,6 +13,8 @@ import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
+import com.simulatedtez.gochat.chat.remote.models.toMessage_db
+import com.simulatedtez.gochat.chat.remote.models.toMessages_db
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import io.github.aakira.napier.Napier
@@ -55,6 +58,15 @@ class ChatRepository(
         chatService.connect()
     }
 
+    fun connectAndSendPendingMessages() {
+        context.launch(Dispatchers.IO) {
+            val pendingMessages = chatDb.getPendingMessages(chatInfo.chatReference)
+            context.launch(Dispatchers.Main) {
+                chatService.connectAndSend(pendingMessages.toMessages())
+            }
+        }
+    }
+
     fun killChatService() {
         chatService.disconnect()
         chatService = ChatServiceManager.Builder<Message>()
@@ -74,6 +86,9 @@ class ChatRepository(
     }
 
     suspend fun sendMessage(message: Message) {
+        context.launch(Dispatchers.IO) {
+            chatDb.store(message)
+        }
         chatService.sendMessage(message)
     }
 
@@ -83,7 +98,7 @@ class ChatRepository(
             timesPaginated++
         }
         return ChatPage(
-            messages = messages,
+            messages = messages.toMessages(),
             paginationCount = timesPaginated,
             size = messages.size
         )
@@ -143,19 +158,31 @@ class ChatRepository(
         chatEventListener?.onError(response)
     }
 
-    override fun onSend(message: Message) {
-        chatEventListener?.onSend(message)
+    override fun onReceive(messages: List<Message>) {
+        if (!isNewChat) {
+            chatEventListener?.onNewMessages(messages)
+        } else {
+            UserPreference.storeChatHistoryStatus(
+                chatInfo.chatReference, false)
+            isNewChat = false
+            chatEventListener?.onNewMessages(listOf())
+        }
     }
 
-    override fun onReceive(messages: List<Message>) {
-        if (messages.isNotEmpty()) {
-            if (!isNewChat) {
-                chatEventListener?.onNewMessages(messages)
-            } else {
-                UserPreference.storeChatHistoryStatus(
-                    chatInfo.chatReference, false)
-                isNewChat = false
-            }
+    override fun onRecipientMessagesAcknowledged(messages: List<Message>) {
+        context.launch(Dispatchers.IO) {
+            chatDb.setAsSeen(*(messages.toMessages_db().map {
+                it.messageReference to it.chatReference
+            }.toTypedArray()))
+        }
+    }
+
+    override fun onSent(messages: List<Message>) {
+        val dbMessages = messages.toMessages_db()
+        context.launch(Dispatchers.IO) {
+            chatDb.setAsSent(*(dbMessages.map {
+                it.messageReference to it.chatReference
+            }.toTypedArray()))
         }
     }
 

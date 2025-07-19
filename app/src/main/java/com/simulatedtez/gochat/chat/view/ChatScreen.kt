@@ -91,8 +91,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
-            if (hasFinishedInitialMessagesLoad)
-                chatViewModel.resumeChat()
+            if (hasFinishedInitialMessagesLoad) {
+                chatViewModel.connectToChatService()
+            }
         }
 
         override fun onLost() {
@@ -163,19 +164,31 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     LaunchedEffect(pagedMessages) {
         pagedMessages?.let {
-            if (it.paginationCount == 1) {
-                messages.clear()
-                messages.apply {
-                    addAll(it.messages)
-                    sortedBy { m -> m.timestamp }
+            when  {
+                it.paginationCount == 0 -> {
+                    if (!hasFinishedInitialMessagesLoad) {
+                        hasFinishedInitialMessagesLoad = true
+                        chatViewModel.connectAndSendPendingMessages()
+                    }
                 }
-            } else {
-                messages.apply {
-                    addAll(it.messages)
-                    sortedBy { m -> m.timestamp }
+                it.paginationCount == 1 -> {
+                    messages.clear()
+                    messages.apply {
+                        addAll(it.messages)
+                        sortedBy { m -> m.timestamp }
+                    }
+                    if (!hasFinishedInitialMessagesLoad) {
+                        hasFinishedInitialMessagesLoad = true
+                        chatViewModel.connectAndSendPendingMessages()
+                    }
+                }
+                it.paginationCount > 1 -> {
+                    messages.apply {
+                        addAll(it.messages)
+                        sortedBy { m -> m.timestamp }
+                    }
                 }
             }
-            hasFinishedInitialMessagesLoad = true
         }
     }
 
