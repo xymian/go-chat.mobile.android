@@ -13,7 +13,6 @@ import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
-import com.simulatedtez.gochat.chat.remote.models.toMessage_db
 import com.simulatedtez.gochat.chat.remote.models.toMessages_db
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
@@ -161,14 +160,10 @@ class ChatRepository(
     override fun onReceive(messages: List<Message>) {
         if (!isNewChat) {
             context.launch(Dispatchers.IO) {
-                val conflict = findMessageConflict(messages)
-                if (conflict) {
+                val filteredMessages = filterNonConflictingMessages(messages)
+                if (filteredMessages.isNotEmpty()) {
                     context.launch(Dispatchers.Main) {
-                        chatEventListener?.onConflictingMessagesDetected(messages)
-                    }
-                } else {
-                    context.launch(Dispatchers.Main) {
-                        chatEventListener?.onNewMessages(messages)
+                        chatEventListener?.onConflictingMessagesDetected(filteredMessages)
                     }
                 }
             }
@@ -211,10 +206,14 @@ class ChatRepository(
         return chatService.socketIsConnected
     }
 
-    private suspend fun findMessageConflict(messages: List<Message>): Boolean {
+    private suspend fun filterNonConflictingMessages(messages: List<Message>): List<Message> {
+        val filteredMessages = mutableListOf<Message>()
         messages.forEach {
-            if (chatDb.getMessage(it.messageReference) != null) return true
+            val dbMessage = chatDb.getMessage(it.messageReference)
+            if (dbMessage == null){
+                filteredMessages.add(it)
+            }
         }
-        return false
+        return messages
     }
 }
