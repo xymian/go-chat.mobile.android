@@ -12,4 +12,6 @@ interface ChatEventListener {
     fun onError(error: ChatServiceErrorResponse)
     fun onNewMessages(messages: List<Message>)
     fun onNewMessage(message: Message)
+    fun onConflictingMessagesDetected(messages: List<Message>)
+    fun onMessagesSent(messages: List<Message>)
 }

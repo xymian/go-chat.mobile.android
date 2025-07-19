@@ -35,7 +35,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
@@ -83,11 +82,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
     
-    val newMessage by chatViewModel.newMessages.collectAsState()
+    val newMessages by chatViewModel.newMessages.collectAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sentMessage.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
+    val conflictingMessages by chatViewModel.conflictingMessages.observeAsState()
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
@@ -118,7 +118,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     }
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    if (hasFinishedInitialMessagesLoad) {
+                    if (chatViewModel.isChatServiceConnected()) {
                         chatViewModel.resumeChat()
                     }
                 }
@@ -134,6 +134,33 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         onDispose {
             chatViewModel.exitChat()
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(conflictingMessages) {
+        //TODO: consider merge instead of replace
+        conflictingMessages?.let { msgs ->
+            val newMessages = messages.toMutableList()
+            msgs.forEach { newMsg ->
+                val indexOfMessage = newMessages.indexOfFirst { uiMsg ->
+                    uiMsg.messageReference == newMsg.messageReference
+                }
+                if (indexOfMessage != -1) {
+                    newMessages[indexOfMessage] = newMsg
+                } else {
+                    newMessages.add(newMsg)
+                }
+            }
+            messages.clear()
+            messages.addAll(newMessages.sortedBy { it.timestamp })
+        }
+    }
+
+    LaunchedEffect(hasFinishedInitialMessagesLoad) {
+        if (hasFinishedInitialMessagesLoad) {
+            if (!chatViewModel.isChatServiceConnected()) {
+                chatViewModel.connectAndSendPendingMessages()
+            }
         }
     }
 
@@ -164,36 +191,26 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     LaunchedEffect(pagedMessages) {
         pagedMessages?.let {
-            when  {
-                it.paginationCount == 0 -> {
-                    if (!hasFinishedInitialMessagesLoad) {
-                        hasFinishedInitialMessagesLoad = true
-                        chatViewModel.connectAndSendPendingMessages()
-                    }
+            if (it.paginationCount <= 1) {
+                messages.clear()
+                messages.apply {
+                    addAll(it.messages)
+                    sortedBy { m -> m.timestamp }
                 }
-                it.paginationCount == 1 -> {
-                    messages.clear()
-                    messages.apply {
-                        addAll(it.messages)
-                        sortedBy { m -> m.timestamp }
-                    }
-                    if (!hasFinishedInitialMessagesLoad) {
-                        hasFinishedInitialMessagesLoad = true
-                        chatViewModel.connectAndSendPendingMessages()
-                    }
+            } else {
+                messages.apply {
+                    addAll(it.messages)
+                    sortedBy { m -> m.timestamp }
                 }
-                it.paginationCount > 1 -> {
-                    messages.apply {
-                        addAll(it.messages)
-                        sortedBy { m -> m.timestamp }
-                    }
-                }
+            }
+            if (!hasFinishedInitialMessagesLoad) {
+                hasFinishedInitialMessagesLoad = true
             }
         }
     }
 
-    LaunchedEffect(newMessage) {
-        newMessage.let {
+    LaunchedEffect(newMessages) {
+        newMessages.let {
             messages.addAll(it)
             chatViewModel.resetNewMessagesFlow()
         }

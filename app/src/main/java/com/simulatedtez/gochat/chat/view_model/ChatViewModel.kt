@@ -7,7 +7,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
@@ -51,6 +50,9 @@ class ChatViewModel(
 
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
+
+    private val _conflictingMessages = MutableLiveData<List<Message>>()
+    val conflictingMessages: LiveData<List<Message>> = _conflictingMessages
 
     fun resetTokenExpired() {
         _tokenExpired.value = false
@@ -136,8 +138,20 @@ class ChatViewModel(
         _newMessages.value = (_newMessages.value + message) as HashSet<Message>
     }
 
+    override fun onConflictingMessagesDetected(messages: List<Message>) {
+        _conflictingMessages.value = messages
+    }
+
+    override fun onMessagesSent(messages: List<Message>) {
+        TODO("Not yet implemented")
+    }
+
     fun cancel() {
         viewModelScope.cancel()
+    }
+
+    fun isChatServiceConnected(): Boolean {
+        return chatRepo.isChatServiceConnected()
     }
 }
 

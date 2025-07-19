@@ -160,7 +160,18 @@ class ChatRepository(
 
     override fun onReceive(messages: List<Message>) {
         if (!isNewChat) {
-            chatEventListener?.onNewMessages(messages)
+            context.launch(Dispatchers.IO) {
+                val conflict = findMessageConflict(messages)
+                if (conflict) {
+                    context.launch(Dispatchers.Main) {
+                        chatEventListener?.onConflictingMessagesDetected(messages)
+                    }
+                } else {
+                    context.launch(Dispatchers.Main) {
+                        chatEventListener?.onNewMessages(messages)
+                    }
+                }
+            }
         } else {
             UserPreference.storeChatHistoryStatus(
                 chatInfo.chatReference, false)
@@ -194,5 +205,16 @@ class ChatRepository(
                 chatInfo.chatReference, false)
             isNewChat = false
         }
+    }
+
+    fun isChatServiceConnected(): Boolean {
+        return chatService.socketIsConnected
+    }
+
+    private suspend fun findMessageConflict(messages: List<Message>): Boolean {
+        messages.forEach {
+            if (chatDb.getMessage(it.messageReference) != null) return true
+        }
+        return false
     }
 }

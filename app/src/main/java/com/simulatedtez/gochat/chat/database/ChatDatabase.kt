@@ -53,6 +53,10 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
         }
     }
 
+    override suspend fun getMessage(messageRef: String): Message_db? {
+        return messagesDao.getMessage(messageRef)
+    }
+
     override suspend fun getPendingMessages(chatRef: String): List<Message_db> {
         return messagesDao.getPendingMessages(session.username, chatRef)
     }
@@ -144,4 +148,7 @@ interface MessagesDao {
 
     @Query("SELECT * FROM messages WHERE chatReference =:chatRef AND isSent = 0 AND senderUsername =:username")
     suspend fun getPendingMessages(username: String, chatRef: String): List<Message_db>
+
+    @Query("SELECT * FROM messages WHERE messageReference =:messageRef")
+    suspend fun getMessage(messageRef: String): Message_db?
 }
