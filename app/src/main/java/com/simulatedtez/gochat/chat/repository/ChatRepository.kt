@@ -138,6 +138,14 @@ class ChatRepository(
         chatEventListener?.onConnect()
     }
 
+    override fun onDelivered(messages: List<Message>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onRead(messages: List<Message>) {
+        TODO("Not yet implemented")
+    }
+
     override fun onDisconnect(t: Throwable, response: Response?) {
         when {
             response?.code == HttpStatusCode.NotFound.value -> {

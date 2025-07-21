@@ -68,7 +68,7 @@ class ChatViewModel(
             messageReference = UUID.randomUUID().toString(),
             message = message,
             sender = chatInfo.username,
-            receiverUsername = chatInfo.recipientsUsernames[0],
+            receiver = chatInfo.recipientsUsernames[0],
             timestamp = Date().toISOString(),
             chatReference = chatInfo.chatReference,
             ack = false

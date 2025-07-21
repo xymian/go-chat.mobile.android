@@ -16,7 +16,7 @@ open class Message(
     @SerialName("senderUsername")
     override val sender: String,
     @SerialName("receiverUsername")
-    open val receiverUsername: String,
+    override val receiver: String,
     @SerialName("messageTimestamp")
     override var timestamp: String,
     @SerialName("chatReference")
@@ -33,7 +33,7 @@ fun Message.toMessage_db(): Message_db {
     return Message_db(
         messageReference = messageReference,
         sender = sender,
-        receiverUsername = receiverUsername,
+        receiver = receiver,
         message = message,
         chatReference = chatReference,
         timestamp = timestamp,
