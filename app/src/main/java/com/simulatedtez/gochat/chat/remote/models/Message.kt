@@ -21,8 +21,12 @@ open class Message(
     override var timestamp: String,
     @SerialName("chatReference")
     open val chatReference: String,
-    @SerialName("seenByReceiver")
-    open val seenByReceiver: Boolean? = null,
+    @SerialName("ack")
+    open val ack: Boolean? = null,
+    @SerialName("delivered")
+    open val delivered: Boolean? = null,
+    @SerialName("seen")
+    open val seen: Boolean? = null
 ): ComparableMessage()
 
 fun Message.toMessage_db(): Message_db {
@@ -33,7 +37,9 @@ fun Message.toMessage_db(): Message_db {
         message = message,
         chatReference = chatReference,
         timestamp = timestamp,
-        seenByReceiver = seenByReceiver,
+        ack = ack,
+        delivered = delivered,
+        seen = seen,
         isSent = null
     )
 }

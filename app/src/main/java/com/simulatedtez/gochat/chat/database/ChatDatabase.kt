@@ -97,7 +97,9 @@ class Message_db(
     @ColumnInfo("receiverUsername") val receiverUsername: String,
     @ColumnInfo("messageTimestamp") override var timestamp: String,
     @ColumnInfo("chatReference") val chatReference: String,
-    @ColumnInfo("seenByReceiver") val seenByReceiver: Boolean? = null,
+    @ColumnInfo("ack") val ack: Boolean? = null,
+    @ColumnInfo("delivered") val delivered: Boolean? = null,
+    @ColumnInfo("seen") val seen: Boolean? = null,
     @ColumnInfo("isSent") var isSent: Boolean?
 ): ComparableMessage()
 
@@ -110,7 +112,9 @@ fun Message_db.toMessage(): Message {
         message = message,
         chatReference = chatReference,
         timestamp = timestamp,
-        seenByReceiver = seenByReceiver
+        ack = ack,
+        delivered = delivered,
+        seen = seen
     )
 }
 
@@ -130,7 +134,7 @@ interface MessagesDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessages(messages: List<Message_db>)
 
-    @Query("UPDATE messages SET seenByReceiver = 1 WHERE chatReference =:chatRef AND messageReference =:messageRef")
+    @Query("UPDATE messages SET ack = 1 WHERE chatReference =:chatRef AND messageReference =:messageRef")
     suspend fun updateAsSeen(messageRef: String, chatRef: String)
 
     @Query("UPDATE messages SET isSent = 1 WHERE chatReference =:chatRef AND messageReference =:messageRef")

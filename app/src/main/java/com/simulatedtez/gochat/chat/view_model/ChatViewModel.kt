@@ -71,7 +71,7 @@ class ChatViewModel(
             receiverUsername = chatInfo.recipientsUsernames[0],
             timestamp = Date().toISOString(),
             chatReference = chatInfo.chatReference,
-            seenByReceiver = false
+            ack = false
         )
         _sentMessage.value = message
         viewModelScope.launch(Dispatchers.IO) {
