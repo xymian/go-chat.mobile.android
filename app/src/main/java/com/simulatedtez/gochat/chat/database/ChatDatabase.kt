@@ -98,8 +98,8 @@ class Message_db(
     @ColumnInfo("messageTimestamp") override var timestamp: String,
     @ColumnInfo("chatReference") val chatReference: String,
     @ColumnInfo("ack") val ack: Boolean? = null,
-    @ColumnInfo("delivered") val delivered: Boolean? = null,
-    @ColumnInfo("seen") val seen: Boolean? = null,
+    @ColumnInfo("deliveredTimestamp") val deliveredTimestamp: String? = null,
+    @ColumnInfo("seenTimestamp") val seenTimestamp: String? = null,
     @ColumnInfo("isSent") var isSent: Boolean?
 ): ComparableMessage()
 
@@ -113,8 +113,8 @@ fun Message_db.toMessage(): Message {
         chatReference = chatReference,
         timestamp = timestamp,
         ack = ack,
-        delivered = delivered,
-        seen = seen
+        deliveredTimestamp = deliveredTimestamp,
+        seenTimestamp = seenTimestamp
     )
 }
 

@@ -2,6 +2,8 @@ package com.simulatedtez.gochat.chat.repository
 
 import ChatServiceErrorResponse
 import ChatServiceManager
+import ReturnMessageReason
+import SocketMessageLabeler
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
@@ -16,6 +18,7 @@ import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toMessages_db
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import okhttp3.Response
+import java.util.Date
 
 class ChatRepository(
     private val chatInfo: ChatInfo,
@@ -48,7 +52,39 @@ class ChatRepository(
         .setMessageAckCaller(acknowledgeMessagesUsecase)
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
+        .setMessageLabeler(socketMessageLabeler())
         .build(Message.serializer())
+
+    private fun socketMessageLabeler(): SocketMessageLabeler<Message> =
+        object : SocketMessageLabeler<Message> {
+        override fun getReturnMessageFromCurrent(
+            message: Message, reason: ReturnMessageReason?
+        ): Message {
+            return Message(
+                id = message.id,
+                messageReference = message.messageReference,
+                message = message.message,
+                sender = message.sender,
+                receiver = message.receiver,
+                timestamp = message.timestamp,
+                chatReference = message.chatReference,
+                ack = message.ack,
+                deliveredTimestamp = Date().toISOString(),
+                seenTimestamp = message.seenTimestamp
+            )
+        }
+
+        override fun isSocketReturnableMessage(message: Message): Boolean {
+            return message.sender != chatInfo.username && message.deliveredTimestamp == null
+        }
+
+        override fun returnReason(message: Message): ReturnMessageReason? {
+            return when {
+                message.deliveredTimestamp == null -> ReturnMessageReason.DELIVERED
+                else -> null
+            }
+        }
+    }
 
     private var timesPaginated = 0
     private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
@@ -84,7 +120,7 @@ class ChatRepository(
         chatEventListener = listener
     }
 
-    suspend fun sendMessage(message: Message) {
+    fun sendMessage(message: Message) {
         context.launch(Dispatchers.IO) {
             chatDb.store(message)
         }
@@ -138,14 +174,6 @@ class ChatRepository(
         chatEventListener?.onConnect()
     }
 
-    override fun onDelivered(messages: List<Message>) {
-        TODO("Not yet implemented")
-    }
-
-    override fun onRead(messages: List<Message>) {
-        TODO("Not yet implemented")
-    }
-
     override fun onDisconnect(t: Throwable, response: Response?) {
         when {
             response?.code == HttpStatusCode.NotFound.value -> {
@@ -163,6 +191,12 @@ class ChatRepository(
 
     override fun onError(response: ChatServiceErrorResponse) {
         chatEventListener?.onError(response)
+    }
+
+    override fun onMessageReturned(
+        m: Message, reason: ReturnMessageReason?
+    ) {
+        TODO("Not yet implemented")
     }
 
     override fun onReceive(messages: List<Message>) {
