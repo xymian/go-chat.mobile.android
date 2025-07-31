@@ -9,9 +9,11 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.chat.models.MessageStatus
+import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.models.Message
-import com.simulatedtez.gochat.chat.remote.models.toMessage_db
-import com.simulatedtez.gochat.chat.remote.models.toMessages_db
+import com.simulatedtez.gochat.chat.remote.models.toDBMessage
+import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.database.AppDatabase
 import models.ComparableMessage
 import java.text.SimpleDateFormat
@@ -38,7 +40,7 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
     override suspend fun isEmpty(chatRef: String): Boolean {
         return messagesDao.getAny(chatRef) != null
     }
-    override suspend fun loadNextPage(chatRef: String): List<Message_db> {
+    override suspend fun loadNextPage(chatRef: String): List<DBMessage> {
         return timestampsOfLastMessageInPages.let { topMessageTimestamp ->
             messagesDao.getMessages(
                 chatRef = chatRef,
@@ -53,11 +55,11 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
         }
     }
 
-    override suspend fun getMessage(messageRef: String): Message_db? {
+    override suspend fun getMessage(messageRef: String): DBMessage? {
         return messagesDao.getMessage(messageRef)
     }
 
-    override suspend fun getPendingMessages(chatRef: String): List<Message_db> {
+    override suspend fun getPendingMessages(chatRef: String): List<DBMessage> {
         return messagesDao.getPendingMessages(session.username, chatRef)
     }
 
@@ -74,13 +76,13 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
     }
 
     override suspend fun store(message: Message) {
-        messagesDao.insertMessage(message.toMessage_db().apply {
+        messagesDao.insertMessage(message.toDBMessage().apply {
             if (sender == session.username) isSent = false
         })
     }
 
     override suspend fun store(messages: List<Message>) {
-        messagesDao.insertMessages(messages.toMessages_db().apply {
+        messagesDao.insertMessages(messages.toDBMessages().apply {
             forEach {
                 if (it.sender == session.username) it.isSent = false
             }
@@ -90,7 +92,7 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
 }
 
 @Entity(tableName = "messages")
-class Message_db(
+class DBMessage(
     @PrimaryKey val messageReference: String,
     @ColumnInfo(name = "textMessage") override val message: String,
     @ColumnInfo("senderUsername") override val sender: String,
@@ -103,7 +105,23 @@ class Message_db(
     @ColumnInfo("isSent") var isSent: Boolean?
 ): ComparableMessage()
 
-fun Message_db.toMessage(): Message {
+fun DBMessage.toUIMessage(): UIMessage {
+    return UIMessage(
+        message = this.toMessage(),
+        status = if (this.isSent == true)
+            MessageStatus.SENT
+        else MessageStatus.NOT_SENT,
+        isDelivered = !deliveredTimestamp.isNullOrEmpty()
+    )
+}
+
+fun List<DBMessage>.toUIMessages(): List<UIMessage> {
+    return map {
+        it.toUIMessage()
+    }
+}
+
+fun DBMessage.toMessage(): Message {
     return Message(
         id = "",
         messageReference = messageReference,
@@ -118,7 +136,7 @@ fun Message_db.toMessage(): Message {
     )
 }
 
-fun List<Message_db>.toMessages(): List<Message> {
+fun List<DBMessage>.toMessages(): List<Message> {
     return map {
         it.toMessage()
     }
@@ -129,10 +147,10 @@ fun List<Message_db>.toMessages(): List<Message> {
 interface MessagesDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessage(message: Message_db)
+    suspend fun insertMessage(message: DBMessage)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessages(messages: List<Message_db>)
+    suspend fun insertMessages(messages: List<DBMessage>)
 
     @Query("UPDATE messages SET ack = 1 WHERE chatReference =:chatRef AND messageReference =:messageRef")
     suspend fun updateAsSeen(messageRef: String, chatRef: String)
@@ -142,17 +160,17 @@ interface MessagesDao {
 
     @Query("SELECT * FROM messages WHERE " +
             "chatReference =:chatRef AND messageTimestamp < :startTimestamp ORDER BY messageTimestamp DESC LIMIT :size")
-    suspend fun getMessages(chatRef: String, startTimestamp: String, size: Int): List<Message_db>
+    suspend fun getMessages(chatRef: String, startTimestamp: String, size: Int): List<DBMessage>
 
     @Query("SELECT * FROM messages WHERE chatReference =:chatRef ORDER BY messageTimestamp DESC LIMIT 1")
-    suspend fun getLastMessage(chatRef: String): Message_db?
+    suspend fun getLastMessage(chatRef: String): DBMessage?
 
     @Query("SELECT * FROM messages WHERE chatReference =:chatRef LIMIT 1")
-    suspend fun getAny(chatRef: String): Message_db?
+    suspend fun getAny(chatRef: String): DBMessage?
 
     @Query("SELECT * FROM messages WHERE chatReference =:chatRef AND isSent = 0 AND senderUsername =:username")
-    suspend fun getPendingMessages(username: String, chatRef: String): List<Message_db>
+    suspend fun getPendingMessages(username: String, chatRef: String): List<DBMessage>
 
     @Query("SELECT * FROM messages WHERE messageReference =:messageRef")
-    suspend fun getMessage(messageRef: String): Message_db?
+    suspend fun getMessage(messageRef: String): DBMessage?
 }

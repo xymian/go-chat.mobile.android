@@ -5,6 +5,8 @@ import com.simulatedtez.gochat.chat.remote.models.Message
 import okhttp3.Response
 
 interface ChatEventListener {
+    fun onMessageDelivered(message: Message)
+    fun onMessageSent(message: Message)
     fun onClose(code: Int, reason: String)
     fun onSend(message: Message)
     fun onConnect()

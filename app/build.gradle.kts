@@ -68,6 +68,8 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.material.icons.extended)
+
     implementation(platform("androidx.compose:compose-bom:2024.04.01"))
 
     implementation(libs.androidx.multidex)

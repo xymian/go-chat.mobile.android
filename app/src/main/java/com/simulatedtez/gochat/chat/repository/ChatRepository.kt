@@ -8,6 +8,7 @@ import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
+import com.simulatedtez.gochat.chat.database.toUIMessages
 import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -15,7 +16,8 @@ import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
-import com.simulatedtez.gochat.chat.remote.models.toMessages_db
+import com.simulatedtez.gochat.chat.remote.models.toDBMessage
+import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.utils.toISOString
@@ -133,7 +135,7 @@ class ChatRepository(
             timesPaginated++
         }
         return ChatPage(
-            messages = messages.toMessages(),
+            messages = messages.toUIMessages(),
             paginationCount = timesPaginated,
             size = messages.size
         )
@@ -196,7 +198,12 @@ class ChatRepository(
     override fun onMessageReturned(
         m: Message, reason: ReturnMessageReason?
     ) {
-        TODO("Not yet implemented")
+        when(reason) {
+            ReturnMessageReason.DELIVERED -> {
+                chatEventListener?.onMessageDelivered(m)
+            }
+            else -> {}
+        }
     }
 
     override fun onReceive(messages: List<Message>) {
@@ -219,19 +226,18 @@ class ChatRepository(
 
     override fun onRecipientMessagesAcknowledged(messages: List<Message>) {
         context.launch(Dispatchers.IO) {
-            chatDb.setAsSeen(*(messages.toMessages_db().map {
+            chatDb.setAsSeen(*(messages.toDBMessages().map {
                 it.messageReference to it.chatReference
             }.toTypedArray()))
         }
     }
 
-    override fun onSent(messages: List<Message>) {
-        val dbMessages = messages.toMessages_db()
+    override fun onSent(message: Message) {
+        val dbMessage = message.toDBMessage()
         context.launch(Dispatchers.IO) {
-            chatDb.setAsSent(*(dbMessages.map {
-                it.messageReference to it.chatReference
-            }.toTypedArray()))
+            chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
         }
+        chatEventListener?.onMessageSent(message)
     }
 
     override fun onReceive(message: Message) {

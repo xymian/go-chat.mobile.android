@@ -15,9 +15,13 @@ import com.simulatedtez.gochat.chat.repository.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
+import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
+import com.simulatedtez.gochat.chat.remote.models.toDBMessage
+import com.simulatedtez.gochat.chat.remote.models.toUIMessage
+import com.simulatedtez.gochat.chat.remote.models.toUIMessages
 import com.simulatedtez.gochat.remote.client
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
@@ -36,23 +40,29 @@ class ChatViewModel(
     private val chatRepo: ChatRepository
 ): ViewModel(), ChatEventListener {
 
+    private val _messagesSent = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
+    val messagesSent: StateFlow<HashSet<UIMessage>> = _messagesSent
+
+    private val _messageIsDelivered = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
+    val messageIsDelivered: StateFlow<HashSet<UIMessage>> = _messageIsDelivered
+
+    private val _newMessages = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
+    val newMessages: StateFlow<HashSet<UIMessage>> = _newMessages
+
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
-
-    private val _newMessages = MutableStateFlow<HashSet<Message>>(hashSetOf())
-    val newMessages: StateFlow<HashSet<Message>> = _newMessages
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
-    private val _sentMessage = MutableLiveData<Message>()
-    val sentMessage: LiveData<Message> = _sentMessage
+    private val _sentMessage = MutableLiveData<UIMessage>()
+    val sentMessage: LiveData<UIMessage> = _sentMessage
 
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
-    private val _conflictingMessages = MutableLiveData<List<Message>>()
-    val conflictingMessages: LiveData<List<Message>> = _conflictingMessages
+    private val _conflictingMessages = MutableLiveData<List<UIMessage>>()
+    val conflictingMessages: LiveData<List<UIMessage>> = _conflictingMessages
 
     fun resetTokenExpired() {
         _tokenExpired.value = false
@@ -73,7 +83,7 @@ class ChatViewModel(
             chatReference = chatInfo.chatReference,
             ack = false
         )
-        _sentMessage.value = message
+        _sentMessage.value = message.toUIMessage()
         viewModelScope.launch(Dispatchers.IO) {
             chatRepo.sendMessage(message)
         }
@@ -105,6 +115,18 @@ class ChatViewModel(
         chatRepo.resumeChatService()
     }
 
+    override fun onMessageDelivered(message: Message) {
+        val uiMessage = message.toUIMessage()
+        uiMessage.isSent = true
+        _messageIsDelivered.value = (_messageIsDelivered.value + uiMessage) as HashSet<UIMessage>
+    }
+
+    override fun onMessageSent(message: Message) {
+        val uiMessage = message.toUIMessage()
+        uiMessage.isSent = true
+        _messagesSent.value = (_messagesSent.value + uiMessage) as HashSet<UIMessage>
+    }
+
     override fun onClose(code: Int, reason: String) {
         _isConnected.value = false
     }
@@ -131,15 +153,22 @@ class ChatViewModel(
     }
 
     override fun onNewMessages(messages: List<Message>) {
-        _newMessages.value = (_newMessages.value + messages) as HashSet<Message>
+        val uiMessages = messages.toUIMessages().apply {
+            forEach { it.isSent = true }
+        }
+        _newMessages.value = (_newMessages.value + uiMessages) as HashSet<UIMessage>
     }
 
     override fun onNewMessage(message: Message) {
-        _newMessages.value = (_newMessages.value + message) as HashSet<Message>
+        val uiMessage = message.toUIMessage()
+        uiMessage.isSent = true
+        _newMessages.value = (_newMessages.value + uiMessage) as HashSet<UIMessage>
     }
 
     override fun onConflictingMessagesDetected(messages: List<Message>) {
-        _conflictingMessages.value = messages
+        _conflictingMessages.value = messages.toUIMessages().apply {
+            forEach { it.isSent = true }
+        }
     }
 
     override fun onMessagesSent(messages: List<Message>) {

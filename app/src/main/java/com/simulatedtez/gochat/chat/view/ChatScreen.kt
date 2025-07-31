@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,7 +42,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,14 +62,13 @@ import com.simulatedtez.gochat.GoChatApplication
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.chat.models.ChatInfo
-import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.chat.models.MessageStatus
+import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.view_model.ChatViewModel
 import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,11 +83,11 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val messages = remember { mutableStateSetOf<Message>() }
+    val messages = remember { mutableStateSetOf<UIMessage>() }
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
-    var resolvingMessageConflicts by remember { mutableStateOf<Boolean>(false) }
-    var temporaryMessageBucket = mutableSetOf<Message>()
+    var resolvingMessageConflicts by remember { mutableStateOf(false) }
+    var temporaryMessageBucket = mutableSetOf<UIMessage>()
     
     val newMessages by chatViewModel.newMessages.collectAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
@@ -93,8 +95,8 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
     val conflictingMessages by chatViewModel.conflictingMessages.observeAsState()
-
-    val coroutineScope = rememberCoroutineScope()
+    val messagesSent by chatViewModel.messagesSent.collectAsState()
+    val messagesDelivered by chatViewModel.messageIsDelivered.collectAsState()
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
@@ -144,6 +146,34 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }
     }
 
+    LaunchedEffect(messagesSent) {
+        val modifiedMessages = messages.toMutableList()
+        messagesSent.forEach {
+            val messageIndex = modifiedMessages.indexOfFirst {
+                m -> it.message.messageReference ==  m.message.messageReference
+            }
+            if (messageIndex != -1) {
+                modifiedMessages[messageIndex] = it
+            }
+        }
+        messages.clear()
+        messages.addAll(modifiedMessages)
+    }
+
+    LaunchedEffect(messagesDelivered) {
+        val modifiedMessages = messages.toMutableList()
+        messagesDelivered.forEach {
+            val messageIndex = modifiedMessages.indexOfFirst {
+                    m -> it.message.messageReference ==  m.message.messageReference
+            }
+            if (messageIndex != -1) {
+                modifiedMessages[messageIndex] = it
+            }
+        }
+        messages.clear()
+        messages.addAll(modifiedMessages)
+    }
+
     LaunchedEffect(resolvingMessageConflicts) {
         temporaryMessageBucket = mutableSetOf()
     }
@@ -155,7 +185,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
             val newMessages = messages.toMutableList()
             conflictingMsgs.forEach { newMsg ->
                 val indexOfMessage = newMessages.indexOfFirst { uiMsg ->
-                    uiMsg.messageReference == newMsg.messageReference
+                    uiMsg.message.messageReference == newMsg.message.messageReference
                 }
                 if (indexOfMessage != -1) {
                     newMessages[indexOfMessage] = newMsg
@@ -165,7 +195,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
             }
             messages.clear()
             messages.addAll(
-                (newMessages + temporaryMessageBucket).sortedBy { it.timestamp }
+                (newMessages + temporaryMessageBucket).sortedBy { it.message.timestamp }
             )
             resolvingMessageConflicts = false
         }
@@ -210,12 +240,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 messages.clear()
                 messages.apply {
                     addAll(it.messages)
-                    sortedBy { m -> m.timestamp }
+                    sortedBy { m -> m.message.timestamp }
                 }
             } else {
                 messages.apply {
                     addAll(it.messages)
-                    sortedBy { m -> m.timestamp }
+                    sortedBy { m -> m.message.timestamp }
                 }
             }
             if (!hasFinishedInitialMessagesLoad) {
@@ -279,20 +309,22 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 }
 
 @Composable
-fun MessageBubble(message: Message) {
-    val bubbleColor = if (message.sender == session.username) {
+fun MessageBubble(message: UIMessage) {
+    val bubbleColor = if (message.message.sender == session.username) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.inversePrimary
+        MaterialTheme.colorScheme.surface
     }
 
-    val textColor = if (message.sender == session.username) {
+    val textColor = if (message.message.sender == session.username) {
         Color.White
     } else {
         Color.Black
     }
 
-    val alignment = if (message.sender == session.username) Alignment.End else Alignment.Start
+    val alignment = if (message.message.sender == session.username) {
+        Alignment.End
+    } else Alignment.Start
 
     Box(
         modifier = Modifier.fillMaxWidth(),
@@ -307,26 +339,49 @@ fun MessageBubble(message: Message) {
                         RoundedCornerShape(
                             topStart = 16.dp,
                             topEnd = 16.dp,
-                            bottomStart = if (message.sender == session.username) 16.dp else 0.dp,
-                            bottomEnd = if (message.sender == session.username) 0.dp else 16.dp
+                            bottomStart = if (message.message.sender == session.username) 16.dp else 0.dp,
+                            bottomEnd = if (message.message.sender == session.username) 0.dp else 16.dp
                         )
                     )
                     .background(bubbleColor)
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = message.message,
+                    text = message.message.message,
                     color = textColor
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = formatTimestamp(message.timestamp),
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatTimestamp(message.message.timestamp),
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+
+                if (message.isSent) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    MessageStatusIndicator(status = message.status)
+                }
+            }
         }
     }
+}
+
+@Composable
+fun MessageStatusIndicator(status: MessageStatus) {
+    val (icon, color) = when (status) {
+        MessageStatus.SENDING -> Icons.Default.Schedule to Color.Gray
+        MessageStatus.SENT -> Icons.Default.Check to MaterialTheme.colorScheme.primary
+        else -> Icons.Default.Error to MaterialTheme.colorScheme.error
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = "Message Status",
+        tint = color,
+        modifier = Modifier.size(14.dp)
+    )
 }
 
 @Composable

@@ -1,6 +1,8 @@
 package com.simulatedtez.gochat.chat.remote.models
 
-import com.simulatedtez.gochat.chat.database.Message_db
+import com.simulatedtez.gochat.chat.database.DBMessage
+import com.simulatedtez.gochat.chat.models.MessageStatus
+import com.simulatedtez.gochat.chat.models.UIMessage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import models.ComparableMessage
@@ -29,8 +31,22 @@ open class Message(
     open val seenTimestamp: String? = null
 ): ComparableMessage()
 
-fun Message.toMessage_db(): Message_db {
-    return Message_db(
+fun Message.toUIMessage(): UIMessage {
+    return UIMessage(
+        message = this,
+        status = MessageStatus.NOT_SENT,
+        isDelivered = this.deliveredTimestamp != null
+    )
+}
+
+fun List<Message>.toUIMessages(): List<UIMessage> {
+    return map {
+        it.toUIMessage()
+    }
+}
+
+fun Message.toDBMessage(): DBMessage {
+    return DBMessage(
         messageReference = messageReference,
         sender = sender,
         receiver = receiver,
@@ -44,8 +60,8 @@ fun Message.toMessage_db(): Message_db {
     )
 }
 
-fun List<Message>.toMessages_db(): List<Message_db> {
+fun List<Message>.toDBMessages(): List<DBMessage> {
     return map {
-        it.toMessage_db()
+        it.toDBMessage()
     }
 }
