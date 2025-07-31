@@ -1,6 +1,5 @@
 package com.simulatedtez.gochat.conversations.remote.api_services
 
-import androidx.compose.ui.autofill.ContentType
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse

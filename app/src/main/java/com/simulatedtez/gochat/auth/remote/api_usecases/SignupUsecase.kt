@@ -11,11 +11,11 @@ import kotlinx.serialization.Serializable
 
 class SignupUsecase(
     private val authApiService: IAuthApiService
-): IEndpointCaller<SignupParams, ParentResponse<SignupResponse>, IResponse<ParentResponse<SignupResponse>>> {
+): IEndpointCaller<SignupParams, ParentResponse<String>, IResponse<ParentResponse<String>>> {
 
     override suspend fun call(
         params: SignupParams,
-        handler: IResponseHandler<ParentResponse<SignupResponse>, IResponse<ParentResponse<SignupResponse>>>?
+        handler: IResponseHandler<ParentResponse<String>, IResponse<ParentResponse<String>>>?
     ) {
         handler?.onResponse(authApiService.signup(params))
     }

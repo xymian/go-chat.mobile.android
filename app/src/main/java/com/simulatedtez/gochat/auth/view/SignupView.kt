@@ -19,7 +19,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,15 +35,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.simulatedtez.gochat.auth.view_model.SignupViewModel
+import com.simulatedtez.gochat.auth.view_model.SignupViewModelProvider
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
 
 @Composable
 fun NavController.SignupScreen() {
-    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+    //var confirmPassword by remember { mutableStateOf("") }
+
+    val viewModelProvider = remember { SignupViewModelProvider() }
+    val viewModel: SignupViewModel = viewModel(factory = viewModelProvider)
+
+    val isSignupSuccessful by viewModel.isSignupSuccessful.observeAsState()
+
+    LaunchedEffect(isSignupSuccessful) {
+        isSignupSuccessful?.let {
+            if (it) {
+                popBackStack()
+            }
+        }
+    }
 
     Surface(
         color = Color(0xFFFFFFFF),
@@ -72,8 +90,8 @@ fun NavController.SignupScreen() {
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = username,
+                onValueChange = { username = it },
                 label = { Text("Email Address") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -98,7 +116,7 @@ fun NavController.SignupScreen() {
 
             Button(
                 onClick = {
-
+                    viewModel.signUp(username, password)
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp)

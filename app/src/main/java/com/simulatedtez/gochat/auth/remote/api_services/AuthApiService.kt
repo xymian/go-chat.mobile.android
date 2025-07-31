@@ -26,7 +26,7 @@ class AuthApiService(private val client: HttpClient): IAuthApiService {
         }.invoke()
     }
 
-    override suspend fun signup(params: SignupParams): IResponse<ParentResponse<SignupResponse>> {
+    override suspend fun signup(params: SignupParams): IResponse<ParentResponse<String>> {
         return Response<ParentResponse<SignupResponse>> {
             client.postWithBaseUrl("/register") {
                 contentType(ContentType.Application.Json)

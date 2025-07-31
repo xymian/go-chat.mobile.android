@@ -9,5 +9,5 @@ import com.simulatedtez.gochat.remote.ParentResponse
 
 interface IAuthApiService {
     suspend fun login(params: LoginParams): IResponse<ParentResponse<LoginResponse>>
-    suspend fun signup(params: SignupParams): IResponse<ParentResponse<SignupResponse>>
+    suspend fun signup(params: SignupParams): IResponse<ParentResponse<String>>
 }

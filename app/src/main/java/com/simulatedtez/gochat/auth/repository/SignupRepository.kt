@@ -15,10 +15,14 @@ import kotlinx.coroutines.launch
 
 class SignupRepository(
     private val signupUsecase: SignupUsecase,
-    private val signupEventListener: SignupEventListener,
 ) {
-
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    private var signupEventListener: SignupEventListener? = null
+
+    fun setEventListener(listener: SignupEventListener) {
+        signupEventListener = listener
+    }
 
     suspend fun signUp(username: String, password: String) {
         val signupParams = SignupParams(
@@ -28,21 +32,20 @@ class SignupRepository(
             )
         )
         signupUsecase.call(
-            signupParams, object: IResponseHandler<ParentResponse<SignupResponse>,
-                    IResponse<ParentResponse<SignupResponse>>> {
-                override fun onResponse(response: IResponse<ParentResponse<SignupResponse>>) {
+            signupParams, object: IResponseHandler<ParentResponse<String>,
+                    IResponse<ParentResponse<String>>> {
+                override fun onResponse(response: IResponse<ParentResponse<String>>) {
                     when (response) {
                         is IResponse.Success -> {
-                            // cache login details
                             context.launch(Dispatchers.Main) {
                                 response.data.data?.let {
-                                    signupEventListener.onSignUp(it)
+                                    signupEventListener?.onSignUp()
                                 }
                             }
                         }
                         is IResponse.Failure -> {
                             context.launch(Dispatchers.Main) {
-                                signupEventListener.onSignUpFailed(response)
+                                signupEventListener?.onSignUpFailed(response)
                             }
                         }
 
@@ -59,6 +62,6 @@ class SignupRepository(
 }
 
 interface SignupEventListener {
-    fun onSignUp(signupInfo: SignupResponse)
-    fun onSignUpFailed(errorResponse: IResponse.Failure<ParentResponse<SignupResponse>>)
+    fun onSignUp()
+    fun onSignUpFailed(errorResponse: IResponse.Failure<ParentResponse<String>>)
 }
