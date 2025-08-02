@@ -4,8 +4,8 @@ import com.simulatedtez.gochat.chat.remote.models.Message
 
 data class UIMessage(
     val message: Message,
-    val status: MessageStatus,
-    val isDelivered: Boolean
+    var status: MessageStatus,
 ) {
-    var isSent: Boolean = status == MessageStatus.SENT
+    val isSent: Boolean = status == MessageStatus.SENT || status == MessageStatus.DELIVERED
+    val isDelivered: Boolean = !message.deliveredTimestamp.isNullOrEmpty()
 }

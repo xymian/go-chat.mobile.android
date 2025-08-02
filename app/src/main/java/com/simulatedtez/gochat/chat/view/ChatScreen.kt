@@ -314,7 +314,7 @@ fun MessageBubble(message: UIMessage) {
     val bubbleColor = if (message.message.sender == session.username) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.inversePrimary
     }
 
     val textColor = if (message.message.sender == session.username) {
@@ -360,7 +360,7 @@ fun MessageBubble(message: UIMessage) {
                     color = Color.Gray
                 )
 
-                if (message.isSent) {
+                if (message.message.sender == session.username) {
                     Spacer(modifier = Modifier.width(4.dp))
                     MessageStatusIndicator(status = message.status)
                 }

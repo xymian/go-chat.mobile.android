@@ -15,6 +15,7 @@ import com.simulatedtez.gochat.chat.repository.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
+import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
@@ -117,13 +118,13 @@ class ChatViewModel(
 
     override fun onMessageDelivered(message: Message) {
         val uiMessage = message.toUIMessage()
-        uiMessage.isSent = true
+        uiMessage.status = MessageStatus.DELIVERED
         _messageIsDelivered.value = (_messageIsDelivered.value + uiMessage) as HashSet<UIMessage>
     }
 
     override fun onMessageSent(message: Message) {
         val uiMessage = message.toUIMessage()
-        uiMessage.isSent = true
+        uiMessage.status = MessageStatus.SENT
         _messagesSent.value = (_messagesSent.value + uiMessage) as HashSet<UIMessage>
     }
 
@@ -154,20 +155,20 @@ class ChatViewModel(
 
     override fun onNewMessages(messages: List<Message>) {
         val uiMessages = messages.toUIMessages().apply {
-            forEach { it.isSent = true }
+            forEach { it.status = MessageStatus.SENT }
         }
         _newMessages.value = (_newMessages.value + uiMessages) as HashSet<UIMessage>
     }
 
     override fun onNewMessage(message: Message) {
         val uiMessage = message.toUIMessage()
-        uiMessage.isSent = true
+        uiMessage.status = MessageStatus.SENT
         _newMessages.value = (_newMessages.value + uiMessage) as HashSet<UIMessage>
     }
 
     override fun onConflictingMessagesDetected(messages: List<Message>) {
         _conflictingMessages.value = messages.toUIMessages().apply {
-            forEach { it.isSent = true }
+            forEach { it.status = MessageStatus.SENT }
         }
     }
 

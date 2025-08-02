@@ -59,34 +59,38 @@ class ChatRepository(
 
     private fun socketMessageLabeler(): SocketMessageLabeler<Message> =
         object : SocketMessageLabeler<Message> {
-        override fun getReturnMessageFromCurrent(
-            message: Message, reason: ReturnMessageReason?
-        ): Message {
-            return Message(
-                id = message.id,
-                messageReference = message.messageReference,
-                message = message.message,
-                sender = message.sender,
-                receiver = message.receiver,
-                timestamp = message.timestamp,
-                chatReference = message.chatReference,
-                ack = message.ack,
-                deliveredTimestamp = Date().toISOString(),
-                seenTimestamp = message.seenTimestamp
-            )
-        }
+            override fun getReturnMessageFromCurrent(
+                message: Message, reason: ReturnMessageReason?
+            ): Message {
+                return Message(
+                    id = message.id,
+                    messageReference = message.messageReference,
+                    message = message.message,
+                    sender = message.sender,
+                    receiver = message.receiver,
+                    timestamp = message.timestamp,
+                    chatReference = message.chatReference,
+                    ack = message.ack,
+                    deliveredTimestamp = Date().toISOString(),
+                    seenTimestamp = message.seenTimestamp
+                )
+            }
 
-        override fun isSocketReturnableMessage(message: Message): Boolean {
-            return message.sender != chatInfo.username && message.deliveredTimestamp == null
-        }
+            override fun isReturnableSocketMessage(message: Message): Boolean {
+                return message.sender != chatInfo.username && message.deliveredTimestamp == null
+            }
 
-        override fun returnReason(message: Message): ReturnMessageReason? {
-            return when {
-                message.deliveredTimestamp == null -> ReturnMessageReason.DELIVERED
-                else -> null
+            override fun returnReason(message: Message): ReturnMessageReason? {
+                return when {
+                    message.deliveredTimestamp == null -> ReturnMessageReason.DELIVERED
+                    else -> null
+                }
+            }
+
+            override fun updateReason(message: Message): ReturnMessageReason? {
+                return ReturnMessageReason.DELIVERED
             }
         }
-    }
 
     private var timesPaginated = 0
     private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
@@ -238,6 +242,10 @@ class ChatRepository(
             chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
         }
         chatEventListener?.onMessageSent(message)
+    }
+
+    override fun returnMessage(message: Message) {
+        val m = message
     }
 
     override fun onReceive(message: Message) {

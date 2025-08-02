@@ -27,15 +27,14 @@ open class Message(
     open val ack: Boolean? = null,
     @SerialName("deliveredTimestamp")
     open val deliveredTimestamp: String? = null,
-    @SerialName("seen")
+    @SerialName("seenTimestamp")
     open val seenTimestamp: String? = null
 ): ComparableMessage()
 
 fun Message.toUIMessage(): UIMessage {
     return UIMessage(
         message = this,
-        status = MessageStatus.NOT_SENT,
-        isDelivered = this.deliveredTimestamp != null
+        status = MessageStatus.SENDING,
     )
 }
 
