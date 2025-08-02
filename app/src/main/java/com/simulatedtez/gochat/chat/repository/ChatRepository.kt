@@ -86,10 +86,6 @@ class ChatRepository(
                     else -> null
                 }
             }
-
-            override fun updateReason(message: Message): ReturnMessageReason? {
-                return ReturnMessageReason.DELIVERED
-            }
         }
 
     private var timesPaginated = 0
@@ -199,17 +195,6 @@ class ChatRepository(
         chatEventListener?.onError(response)
     }
 
-    override fun onMessageReturned(
-        m: Message, reason: ReturnMessageReason?
-    ) {
-        when(reason) {
-            ReturnMessageReason.DELIVERED -> {
-                chatEventListener?.onMessageDelivered(m)
-            }
-            else -> {}
-        }
-    }
-
     override fun onReceive(messages: List<Message>) {
         if (!isNewChat) {
             context.launch(Dispatchers.IO) {
@@ -237,11 +222,15 @@ class ChatRepository(
     }
 
     override fun onSent(message: Message) {
-        val dbMessage = message.toDBMessage()
-        context.launch(Dispatchers.IO) {
-            chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
+        if (message.deliveredTimestamp != null) {
+            chatEventListener?.onMessageDelivered(message)
+        } else {
+            val dbMessage = message.toDBMessage()
+            context.launch(Dispatchers.IO) {
+                chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
+            }
+            chatEventListener?.onMessageSent(message)
         }
-        chatEventListener?.onMessageSent(message)
     }
 
     override fun returnMessage(message: Message) {

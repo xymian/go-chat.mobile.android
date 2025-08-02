@@ -108,9 +108,11 @@ class DBMessage(
 fun DBMessage.toUIMessage(): UIMessage {
     return UIMessage(
         message = this.toMessage(),
-        status = if (this.isSent == true)
-            MessageStatus.SENT
-        else MessageStatus.SENDING,
+        status = when {
+            deliveredTimestamp != null -> MessageStatus.DELIVERED
+            isSent == true -> MessageStatus.SENT
+            else -> MessageStatus.SENDING
+        }
     )
 }
 
