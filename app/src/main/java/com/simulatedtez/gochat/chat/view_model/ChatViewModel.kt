@@ -20,7 +20,6 @@ import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
-import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.chat.remote.models.toUIMessages
 import com.simulatedtez.gochat.remote.client
@@ -56,8 +55,8 @@ class ChatViewModel(
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
-    private val _sentMessage = MutableLiveData<UIMessage>()
-    val sentMessage: LiveData<UIMessage> = _sentMessage
+    private val _sendMessageAttempt = MutableLiveData<UIMessage>()
+    val sendMessageAttempt: LiveData<UIMessage> = _sendMessageAttempt
 
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
@@ -73,6 +72,14 @@ class ChatViewModel(
         _newMessages.value = hashSetOf()
     }
 
+    fun resetMessagesSentFlow() {
+        _messagesSent.value = hashSetOf()
+    }
+
+    fun resetMessageDeliveredFlow() {
+        _messageIsDelivered.value = hashSetOf()
+    }
+
     fun sendMessage(message: String) {
         val message = Message(
             id = "",
@@ -84,7 +91,7 @@ class ChatViewModel(
             chatReference = chatInfo.chatReference,
             ack = false
         )
-        _sentMessage.value = message.toUIMessage()
+        _sendMessageAttempt.value = message.toUIMessage()
         viewModelScope.launch(Dispatchers.IO) {
             chatRepo.sendMessage(message)
         }

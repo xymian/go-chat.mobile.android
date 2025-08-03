@@ -6,6 +6,7 @@ import ReturnMessageReason
 import SocketMessageLabeler
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
+import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.database.toUIMessages
@@ -97,7 +98,9 @@ class ChatRepository(
 
     fun connectAndSendPendingMessages() {
         context.launch(Dispatchers.IO) {
-            val pendingMessages = chatDb.getPendingMessages(chatInfo.chatReference)
+            val pendingMessages = mutableListOf<DBMessage>()
+            pendingMessages.addAll(chatDb.getUndeliveredMessages(chatInfo.username, chatInfo.chatReference))
+            pendingMessages.addAll(chatDb.getPendingMessages(chatInfo.chatReference))
             context.launch(Dispatchers.Main) {
                 chatService.connectAndSend(pendingMessages.toMessages())
             }
@@ -218,6 +221,23 @@ class ChatRepository(
             chatDb.setAsSeen(*(messages.toDBMessages().map {
                 it.messageReference to it.chatReference
             }.toTypedArray()))
+        }
+    }
+
+    override fun onReturnMissingMessages(messages: List<Message>): List<Message> {
+        return messages.map {
+            Message(
+                id = it.id,
+                messageReference = it.messageReference,
+                message = it.message,
+                sender = it.sender,
+                receiver = it.receiver,
+                timestamp = it.timestamp,
+                chatReference = it.chatReference,
+                ack = it.ack,
+                deliveredTimestamp = Date().toISOString(),
+                seenTimestamp = it.seenTimestamp
+            )
         }
     }
 

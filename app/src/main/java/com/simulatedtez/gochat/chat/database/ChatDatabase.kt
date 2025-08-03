@@ -63,6 +63,10 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
         return messagesDao.getPendingMessages(session.username, chatRef)
     }
 
+    override suspend fun getUndeliveredMessages(username: String, chatRef: String): List<DBMessage> {
+        return messagesDao.getUndeliveredMessages(username, chatRef)
+    }
+
     override suspend fun setAsSeen(vararg messageRefToChatRef: Pair<String, String>) {
         messageRefToChatRef.forEach { pair ->
             messagesDao.updateAsSeen(pair.first, pair.second)
@@ -146,6 +150,9 @@ fun List<DBMessage>.toMessages(): List<Message> {
 
 @Dao
 interface MessagesDao {
+
+    @Query("SELECT * FROM messages WHERE chatReference =:chatRef AND senderUsername =:username AND deliveredTimestamp IS NULL")
+    suspend fun getUndeliveredMessages(username: String, chatRef: String): List<DBMessage>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: DBMessage)
