@@ -52,7 +52,6 @@ class ChatRepository(
         .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setMissingMessagesCaller(getMissingMessagesUsecase)
-        .setMessageAckCaller(acknowledgeMessagesUsecase)
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
         .setMessageLabeler(socketMessageLabeler())
@@ -71,7 +70,7 @@ class ChatRepository(
                     receiver = message.receiver,
                     timestamp = message.timestamp,
                     chatReference = message.chatReference,
-                    ack = message.ack,
+                    ack = true,
                     deliveredTimestamp = Date().toISOString(),
                     seenTimestamp = message.seenTimestamp
                 )
@@ -234,7 +233,7 @@ class ChatRepository(
                 receiver = it.receiver,
                 timestamp = it.timestamp,
                 chatReference = it.chatReference,
-                ack = it.ack,
+                ack = true,
                 deliveredTimestamp = Date().toISOString(),
                 seenTimestamp = it.seenTimestamp
             )
@@ -242,13 +241,13 @@ class ChatRepository(
     }
 
     override fun onSent(message: Message) {
+        val dbMessage = message.toDBMessage()
+        context.launch(Dispatchers.IO) {
+            chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
+        }
         if (message.deliveredTimestamp != null) {
             chatEventListener?.onMessageDelivered(message)
         } else {
-            val dbMessage = message.toDBMessage()
-            context.launch(Dispatchers.IO) {
-                chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
-            }
             chatEventListener?.onMessageSent(message)
         }
     }
