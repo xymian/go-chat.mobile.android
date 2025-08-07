@@ -252,7 +252,8 @@ class ChatRepository(
         }
     }
 
-    override fun returnMessage(message: Message) {
+    /*** for testing purposes **/
+    override fun returnMessage(message: Message, exportStatus: Boolean) {
         val m = message
     }
 
