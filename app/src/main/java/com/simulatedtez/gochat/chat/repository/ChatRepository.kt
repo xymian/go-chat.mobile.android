@@ -9,7 +9,6 @@ import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.database.toUIMessages
-import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
@@ -33,7 +32,6 @@ import java.util.Date
 class ChatRepository(
     private val chatInfo: ChatInfo,
     private val createChatRoomUsecase: CreateChatRoomUsecase,
-    getMissingMessagesUsecase: GetMissingMessagesUsecase,
     private val chatDb: IChatStorage,
 ): ChatServiceListener<Message> {
 
@@ -48,7 +46,6 @@ class ChatRepository(
         .setUsername(chatInfo.username)
         .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(chatInfo.recipientsUsernames)
-        .setMissingMessagesCaller(getMissingMessagesUsecase)
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
         .setMessageLabeler(socketMessageLabeler())

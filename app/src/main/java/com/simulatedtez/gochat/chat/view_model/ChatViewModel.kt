@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.chat.database.ChatDatabase
-import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.repository.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
@@ -18,7 +17,6 @@ import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
-import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.chat.remote.models.toUIMessages
 import com.simulatedtez.gochat.remote.client
@@ -197,15 +195,6 @@ class ChatViewModelProvider(
         val repo = ChatRepository(
             chatInfo = chatInfo,
             CreateChatRoomUsecase(ChatApiService(client)),
-            GetMissingMessagesUsecase(
-                params = GetMissingMessagesParams(
-                    request = GetMissingMessagesParams.Request(
-                        chatReference = chatInfo.chatReference,
-                        yourUsername = chatInfo.username
-                    )
-                ),
-                chatApiService = ChatApiService(client)
-            ),
             chatDb = ChatDatabase.get(context)
         )
 

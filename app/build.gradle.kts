@@ -100,7 +100,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
-    implementation(project.files("libs/chat-library-1.5.jar"))
+    implementation(project.files("libs/chat-library-2.0.jar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
