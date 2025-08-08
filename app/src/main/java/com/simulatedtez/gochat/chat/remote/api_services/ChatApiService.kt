@@ -1,7 +1,6 @@
 package com.simulatedtez.gochat.chat.remote.api_services
 
 import com.simulatedtez.gochat.Session.Companion.session
-import com.simulatedtez.gochat.chat.remote.api_usecases.AckParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesParams
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -30,15 +29,6 @@ class ChatApiService(private val client: HttpClient): IChatApiService {
         return Response<ParentResponse<List<Message>>> {
             client.getWithBaseUrl("/messages/${params.request.chatReference}/${params.request.yourUsername}/unacknowledged") {
                 header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
-            }
-        }.invoke()
-    }
-
-    override suspend fun acknowledgeMessage(params: AckParams): IResponse<ParentResponse<List<Message>>> {
-        return Response<ParentResponse<List<Message>>> {
-            client.postWithBaseUrl("/messages/acknowledge") {
-                header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
-                setBody(params.request)
             }
         }.invoke()
     }

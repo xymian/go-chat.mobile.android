@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.chat.database.ChatDatabase
-import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.repository.ChatEventListener
@@ -205,10 +204,6 @@ class ChatViewModelProvider(
                         yourUsername = chatInfo.username
                     )
                 ),
-                chatApiService = ChatApiService(client)
-            ),
-            AcknowledgeMessagesUsecase(
-                chatInfo = chatInfo,
                 chatApiService = ChatApiService(client)
             ),
             chatDb = ChatDatabase.get(context)

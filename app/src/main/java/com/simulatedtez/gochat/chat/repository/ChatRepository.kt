@@ -2,15 +2,13 @@ package com.simulatedtez.gochat.chat.repository
 
 import ChatServiceErrorResponse
 import ChatServiceManager
-import ReturnMessageReason
-import SocketMessageLabeler
+import SocketMessageReturner
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.database.toUIMessages
-import com.simulatedtez.gochat.chat.remote.api_usecases.AcknowledgeMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.api_usecases.GetMissingMessagesUsecase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
@@ -36,7 +34,6 @@ class ChatRepository(
     private val chatInfo: ChatInfo,
     private val createChatRoomUsecase: CreateChatRoomUsecase,
     getMissingMessagesUsecase: GetMissingMessagesUsecase,
-    acknowledgeMessagesUsecase: AcknowledgeMessagesUsecase,
     private val chatDb: IChatStorage,
 ): ChatServiceListener<Message> {
 
@@ -57,10 +54,10 @@ class ChatRepository(
         .setMessageLabeler(socketMessageLabeler())
         .build(Message.serializer())
 
-    private fun socketMessageLabeler(): SocketMessageLabeler<Message> =
-        object : SocketMessageLabeler<Message> {
-            override fun getReturnMessageFromCurrent(
-                message: Message, reason: ReturnMessageReason?
+    private fun socketMessageLabeler(): SocketMessageReturner<Message> =
+        object : SocketMessageReturner<Message> {
+            override fun returnMessage(
+                message: Message
             ): Message {
                 return Message(
                     id = message.id,
@@ -78,13 +75,6 @@ class ChatRepository(
 
             override fun isReturnableSocketMessage(message: Message): Boolean {
                 return message.sender != chatInfo.username && message.deliveredTimestamp == null
-            }
-
-            override fun returnReason(message: Message): ReturnMessageReason? {
-                return when {
-                    message.deliveredTimestamp == null -> ReturnMessageReason.DELIVERED
-                    else -> null
-                }
             }
         }
 
