@@ -9,6 +9,7 @@ import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.database.toUIMessages
+import com.simulatedtez.gochat.chat.interfaces.ChatEventListener
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
@@ -36,6 +37,9 @@ class ChatRepository(
 ): ChatServiceListener<Message> {
 
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    private var timesPaginated = 0
+    private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
 
     private var chatEventListener: ChatEventListener? = null
     private var chatService = ChatServiceManager.Builder<Message>()
@@ -74,9 +78,6 @@ class ChatRepository(
                 return message.sender != chatInfo.username && message.deliveredTimestamp == null
             }
         }
-
-    private var timesPaginated = 0
-    private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
 
     fun connectToChatService() {
         chatService.connect()

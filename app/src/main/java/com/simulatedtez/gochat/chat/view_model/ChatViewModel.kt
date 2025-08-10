@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.remote.models.Message
-import com.simulatedtez.gochat.chat.repository.ChatEventListener
+import com.simulatedtez.gochat.chat.interfaces.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage

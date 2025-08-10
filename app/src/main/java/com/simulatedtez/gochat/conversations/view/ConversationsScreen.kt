@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
@@ -79,10 +80,21 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val conversationHistory by viewModel.conversations.observeAsState(listOf())
     val errorMessage by viewModel.errorMessage.observeAsState()
 
-    viewModel.fetchConversations()
+    val newMessages by viewModel.newMessages.collectAsState()
+    val isConnected by viewModel.isConnected.observeAsState()
 
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    LaunchedEffect(isConnected) {
+        isConnected?.let {
+            if (it) {
+                snackbarHostState.showSnackbar("socket is connected")
+            } else {
+                snackbarHostState.showSnackbar("socket is disconnected")
+            }
+        }
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {

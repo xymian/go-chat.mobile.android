@@ -9,7 +9,7 @@ import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.RemoteParams
 import kotlinx.serialization.Serializable
 
-class StartNewChatUsecase(
+class AddNewChatUsecase(
     private val conversationsApiService: IConversationsService
 ): IEndpointCaller<StartNewChatParams, ParentResponse<NewChatResponse>, IResponse<ParentResponse<NewChatResponse>>> {
 
