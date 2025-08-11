@@ -62,6 +62,7 @@ import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
+import com.simulatedtez.gochat.utils.formatTimestamp
 import io.ktor.websocket.Frame
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,14 +105,24 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     }
 
     LaunchedEffect(conversationHistory) {
-        conversations.clear()
-        conversations.addAll(conversationHistory)
+        if (conversationHistory.isNotEmpty()) {
+            conversations.clear()
+            conversations.addAll(conversationHistory)
+            viewModel.connectToChatService()
+        }
     }
 
     LaunchedEffect(newConversation) {
         newConversation?.let {
             conversations.add(it)
             showBottomSheet = false
+        }
+    }
+
+    LaunchedEffect(newMessages) {
+        if (newMessages.isNotEmpty()) {
+            viewModel.rebuildConversations(conversations, newMessages.toList())
+            viewModel.resetNewMessagesFlow()
         }
     }
 
@@ -212,7 +223,7 @@ fun ChatItem(chat: Conversation, screenActions: ConversationsScreenActions) {
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = chat.timestamp,
+                text = formatTimestamp(chat.timestamp),
                 color = Color.Gray,
                 fontSize = 12.sp
             )

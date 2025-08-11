@@ -66,6 +66,27 @@ class ConversationsViewModel(
         }
     }
 
+    fun rebuildConversations(conversations: List<Conversation>, newMessages: List<UIMessage>) {
+        val newConversations = mutableListOf<Conversation>()
+        conversations.forEach { convo ->
+            val messages = newMessages.filter { it.message.sender == convo.other }.sortedBy { it.message.timestamp }
+            if (messages.isNotEmpty()) {
+                newConversations.add(
+                    Conversation(
+                        other = convo.other,
+                        chatReference = convo.chatReference,
+                        lastMessage = messages.last().message.message,
+                        timestamp = messages.last().message.timestamp,
+                        unreadCount = messages.size
+                    )
+                )
+            } else {
+                newConversations.add(convo)
+            }
+        }
+        _conversations.value = newConversations
+    }
+
     fun addNewConversation(user: String, other: String) {
         _waiting.value = true
         viewModelScope.launch(Dispatchers.IO) {
@@ -86,6 +107,20 @@ class ConversationsViewModel(
             chatReference = chat.chatReference
         )
         _waiting.value = false
+    }
+
+    fun connectToChatService() {
+        viewModelScope.launch(Dispatchers.IO) {
+            conversationsRepository.connectToChatService()
+        }
+    }
+
+    fun pauseChat() {
+        conversationsRepository.pauseChatService()
+    }
+
+    fun resumeChat() {
+        conversationsRepository.resumeChatService()
     }
 
     override fun onClose(code: Int, reason: String) {
@@ -117,6 +152,10 @@ class ConversationsViewModel(
         val uiMessage = message.toUIMessage()
         uiMessage.status = MessageStatus.SENT
         _newMessages.value = (_newMessages.value + uiMessage) as HashSet<UIMessage>
+    }
+
+    fun resetNewMessagesFlow() {
+        _newMessages.value = hashSetOf()
     }
 }
 

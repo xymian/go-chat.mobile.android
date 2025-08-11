@@ -2,7 +2,7 @@ package com.simulatedtez.gochat.chat.remote.api_services
 
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
-import com.simulatedtez.gochat.chat.remote.api_usecases.CreateConversationsParams
+import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsParams
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.Response
 import com.simulatedtez.gochat.remote.postWithBaseUrl

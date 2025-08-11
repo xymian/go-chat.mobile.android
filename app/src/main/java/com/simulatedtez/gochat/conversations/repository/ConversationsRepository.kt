@@ -5,7 +5,9 @@ import SocketMessageReturner
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
+import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
+import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.chat.remote.models.toDBMessages
@@ -55,8 +57,8 @@ class ConversationsRepository(
         .setMessageLabeler(socketMessageLabeler())
         .build(Message.serializer())
 
-    private fun socketMessageLabeler(): SocketMessageReturner<Message> =
-        object : SocketMessageReturner<Message> {
+    private fun socketMessageLabeler(): SocketMessageReturner<Message> {
+        return object : SocketMessageReturner<Message> {
             override fun returnMessage(
                 message: Message
             ): Message {
@@ -78,6 +80,38 @@ class ConversationsRepository(
                 return message.sender != session.username && message.deliveredTimestamp == null
             }
         }
+    }
+
+    suspend fun connectToChatService() {
+        createNewConversations {
+            chatService.connect()
+        }
+    }
+
+    /*fun connectAndSendPendingMessages() {
+        context.launch(Dispatchers.IO) {
+            val pendingMessages = mutableListOf<DBMessage>()
+            pendingMessages.addAll(chatDb.getUndeliveredMessages(session.username, chatInfo.chatReference))
+            pendingMessages.addAll(chatDb.getPendingMessages(chatInfo.chatReference))
+            context.launch(Dispatchers.Main) {
+                chatService.connectAndSend(pendingMessages.toMessages())
+            }
+        }
+    }*/
+
+    fun killChatService() {
+        chatService.disconnect()
+        chatService = ChatServiceManager.Builder<Message>()
+            .build(Message.serializer())
+    }
+
+    fun pauseChatService() {
+        chatService.pause()
+    }
+
+    fun resumeChatService() {
+        chatService.resume()
+    }
 
     fun setListener(listener: ConversationEventListener) {
         conversationEventListener = listener
@@ -184,7 +218,7 @@ class ConversationsRepository(
                     val filteredMessages = filterNonConflictingMessages(messages)
                     if (filteredMessages.isNotEmpty()) {
                         context.launch(Dispatchers.Main) {
-                            conversationEventListener?.onConflictingMessagesDetected(filteredMessages)
+                            conversationEventListener?.onNewMessages(filteredMessages)
                         }
                     }
                 }
