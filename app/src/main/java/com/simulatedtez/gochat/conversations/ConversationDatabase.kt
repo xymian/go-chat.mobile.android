@@ -8,7 +8,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.database.AppDatabase
 
@@ -25,17 +24,25 @@ class ConversationDatabase private constructor(private val conversationsDao: Con
         }
     }
 
-    suspend fun getConversations(): List<Conversation_db> {
+    suspend fun getConversations(): List<DBConversation> {
         return conversationsDao.getAll()
     }
 
-    suspend fun insertConversation(convo: Conversation_db) {
+    suspend fun updateUnreadCountToZero(chatRef: String) {
+        conversationsDao.updateUnreadCountToZero(chatRef)
+    }
+
+    suspend fun insertConversation(convo: DBConversation) {
         conversationsDao.insert(convo)
+    }
+
+    suspend fun insertConversations(convos: List<DBConversation>) {
+        conversationsDao.insert(convos)
     }
 }
 
 @Entity(tableName = "conversations")
-data class Conversation_db(
+data class DBConversation(
     @PrimaryKey
     @ColumnInfo("chatReference")
     val chatReference: String,
@@ -54,13 +61,19 @@ data class Conversation_db(
 @Dao
 interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE chatReference = :chatRef")
-    suspend fun getByChatReference(chatRef: String): Conversation_db
+    suspend fun getByChatReference(chatRef: String): DBConversation
+
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE chatReference =:chatRef")
+    suspend fun updateUnreadCountToZero(chatRef: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(conv: Conversation_db)
+    suspend fun insert(conv: DBConversation)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(convos: List<DBConversation>)
 
     @Query("SELECT * FROM conversations ORDER BY timestamp DESC")
-    suspend fun getAll(): List<Conversation_db>
+    suspend fun getAll(): List<DBConversation>
 
     @Query("DELETE FROM conversations WHERE chatReference = :chatRef")
     suspend fun deleteByChatReference(chatRef: String)
@@ -69,7 +82,7 @@ interface ConversationDao {
     suspend fun deleteAll()
 }
 
-fun Conversation_db.toConversation(): Conversation {
+fun DBConversation.toConversation(): Conversation {
     return Conversation(
         other = otherUser,
         chatReference = chatReference,
@@ -80,7 +93,7 @@ fun Conversation_db.toConversation(): Conversation {
     )
 }
 
-fun List<Conversation_db>.toConversations(): List<Conversation> {
+fun List<DBConversation>.toConversations(): List<Conversation> {
     return map {
         it.toConversation()
     }

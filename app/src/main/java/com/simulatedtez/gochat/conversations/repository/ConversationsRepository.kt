@@ -5,14 +5,12 @@ import SocketMessageReturner
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
-import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
-import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
-import com.simulatedtez.gochat.conversations.Conversation_db
+import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
@@ -117,8 +115,8 @@ class ConversationsRepository(
         conversationEventListener = listener
     }
 
-    suspend fun getConversations(): List<Conversation> {
-        return conversationDB.getConversations().toConversations()
+    suspend fun getConversations(): List<DBConversation> {
+        return conversationDB.getConversations()
     }
 
     suspend fun createNewConversations(onSuccess: (() -> Unit)) {
@@ -146,6 +144,10 @@ class ConversationsRepository(
         )
     }
 
+    suspend fun storeConversations(conversations: List<DBConversation>) {
+        conversationDB.insertConversations(conversations)
+    }
+
     suspend fun addNewChat(username: String, otherUser: String) {
         val params = StartNewChatParams(
             request = StartNewChatParams.Request(
@@ -160,7 +162,7 @@ class ConversationsRepository(
                        response.data.data?.let {
                            context.launch(Dispatchers.IO) {
                                conversationDB.insertConversation(
-                                   Conversation_db(
+                                   DBConversation(
                                        otherUser = it.other,
                                        chatReference = it.chatReference,
                                        lastMessage = "",

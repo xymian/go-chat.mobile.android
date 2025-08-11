@@ -15,6 +15,7 @@ import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.chat.remote.models.toUIMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
+import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_services.ConversationsService
@@ -40,11 +41,11 @@ class ConversationsViewModel(
     private val _waiting = MutableLiveData<Boolean>()
     val waiting: LiveData<Boolean> = _waiting
 
-    private val _newConversation = MutableLiveData<Conversation>()
-    val newConversation: LiveData<Conversation> = _newConversation
+    private val _newConversation = MutableLiveData<DBConversation>()
+    val newConversation: LiveData<DBConversation> = _newConversation
 
-    private val _conversations = MutableLiveData<List<Conversation>>()
-    val conversations: LiveData<List<Conversation>> = _conversations
+    private val _conversations = MutableLiveData<List<DBConversation>>()
+    val conversations: LiveData<List<DBConversation>> = _conversations
 
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> = _errorMessage
@@ -66,23 +67,26 @@ class ConversationsViewModel(
         }
     }
 
-    fun rebuildConversations(conversations: List<Conversation>, newMessages: List<UIMessage>) {
-        val newConversations = mutableListOf<Conversation>()
+    fun rebuildConversations(conversations: List<DBConversation>, newMessages: List<UIMessage>) {
+        val newConversations = mutableListOf<DBConversation>()
         conversations.forEach { convo ->
-            val messages = newMessages.filter { it.message.sender == convo.other }.sortedBy { it.message.timestamp }
+            val messages = newMessages.filter { it.message.sender == convo.otherUser }.sortedBy { it.message.timestamp }
             if (messages.isNotEmpty()) {
                 newConversations.add(
-                    Conversation(
-                        other = convo.other,
+                    DBConversation(
+                        otherUser = convo.otherUser,
                         chatReference = convo.chatReference,
                         lastMessage = messages.last().message.message,
                         timestamp = messages.last().message.timestamp,
-                        unreadCount = messages.size
+                        unreadCount = convo.unreadCount + messages.size
                     )
                 )
             } else {
                 newConversations.add(convo)
             }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            conversationsRepository.storeConversations(newConversations)
         }
         _conversations.value = newConversations
     }
@@ -102,8 +106,8 @@ class ConversationsViewModel(
     }
 
     override fun onNewChatAdded(chat: NewChatResponse) {
-        _newConversation.value = Conversation(
-            other = chat.other,
+        _newConversation.value = DBConversation(
+            otherUser = chat.other,
             chatReference = chat.chatReference
         )
         _waiting.value = false

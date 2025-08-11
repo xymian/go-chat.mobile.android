@@ -19,6 +19,7 @@ import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.chat.remote.models.toUIMessages
+import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.client
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
@@ -97,6 +98,12 @@ class ChatViewModel(
     fun loadMessages() {
         viewModelScope.launch(Dispatchers.IO) {
             _pagedMessages.postValue(chatRepo.loadNextPageMessages())
+        }
+    }
+
+    fun markConversationAsOpened() {
+        viewModelScope.launch(Dispatchers.IO) {
+            chatRepo.markConversationAsOpened()
         }
     }
 
@@ -195,7 +202,8 @@ class ChatViewModelProvider(
         val repo = ChatRepository(
             chatInfo = chatInfo,
             CreateChatRoomUsecase(ChatApiService(client)),
-            chatDb = ChatDatabase.get(context)
+            chatDb = ChatDatabase.get(context),
+            ConversationDatabase.get(context)
         )
 
         val chatViewModel = ChatViewModel(chatInfo, repo).apply {

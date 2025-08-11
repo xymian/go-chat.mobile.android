@@ -245,6 +245,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     addAll(it.messages)
                     sortedBy { m -> m.message.timestamp }
                 }
+                chatViewModel.markConversationAsOpened()
             } else {
                 messages.apply {
                     addAll(it.messages)

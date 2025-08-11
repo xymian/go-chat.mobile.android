@@ -17,6 +17,7 @@ import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.chat.remote.models.toDBMessages
+import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.utils.toISOString
@@ -34,6 +35,7 @@ class ChatRepository(
     private val chatInfo: ChatInfo,
     private val createChatRoomUsecase: CreateChatRoomUsecase,
     private val chatDb: IChatStorage,
+    private val conversationDB: ConversationDatabase
 ): ChatServiceListener<Message> {
 
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -117,6 +119,10 @@ class ChatRepository(
             chatDb.store(message)
         }
         chatService.sendMessage(message)
+    }
+
+    suspend fun markConversationAsOpened() {
+        conversationDB.updateUnreadCountToZero(chatInfo.chatReference)
     }
 
     suspend fun loadNextPageMessages(): ChatPage {

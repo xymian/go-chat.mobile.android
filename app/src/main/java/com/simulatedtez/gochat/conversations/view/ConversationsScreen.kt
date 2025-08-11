@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.R
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.models.ChatInfo
+import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
@@ -71,7 +72,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val conversations = remember { mutableStateListOf<Conversation>() }
+    val conversations = remember { mutableStateListOf<DBConversation>() }
 
     val viewModelFactory = remember { ConversationsViewModelProvider(context) }
     val viewModel: ConversationsViewModel = viewModel(factory = viewModelFactory)
@@ -175,7 +176,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 }
 
 @Composable
-fun ChatItem(chat: Conversation, screenActions: ConversationsScreenActions) {
+fun ChatItem(chat: DBConversation, screenActions: ConversationsScreenActions) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,7 +184,7 @@ fun ChatItem(chat: Conversation, screenActions: ConversationsScreenActions) {
                 screenActions.onChatClicked(
                     ChatInfo(
                         username = session.username,
-                        recipientsUsernames = listOf(chat.other),
+                        recipientsUsernames = listOf(chat.otherUser),
                         chatReference = chat.chatReference
                     )
                 )
@@ -206,7 +207,7 @@ fun ChatItem(chat: Conversation, screenActions: ConversationsScreenActions) {
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = chat.other,
+                text = chat.otherUser,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
