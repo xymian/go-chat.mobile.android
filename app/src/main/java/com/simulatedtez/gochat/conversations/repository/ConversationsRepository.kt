@@ -130,7 +130,7 @@ class ConversationsRepository(
         conversationDB.insertConversations(conversations)
     }
 
-    suspend fun addNewChat(username: String, otherUser: String, completion: (isSuccess: Boolean) -> Unit) {
+    suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
         val params = StartNewChatParams(
             request = StartNewChatParams.Request(
                 user = username, other = otherUser
@@ -149,7 +149,7 @@ class ConversationsRepository(
                                        chatReference = it.chatReference,
                                        lastMessage = "",
                                        timestamp = "",
-                                       unreadCount = 0,
+                                       unreadCount = messageCount,
                                        contactAvi = ""
                                    )
                                )

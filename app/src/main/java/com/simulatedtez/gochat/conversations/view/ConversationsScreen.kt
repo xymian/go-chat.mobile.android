@@ -54,6 +54,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -104,6 +107,25 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
         }
     }
     (app as INetworkMonitor).setCallback(networkCallbacks)
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(Unit) {
+        val observer = LifecycleEventObserver { _, event ->
+
+            when (event) {
+                Lifecycle.Event.ON_CREATE -> {
+                    viewModel.fetchConversations()
+                }
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(isConnected) {
         isConnected?.let {
@@ -185,7 +207,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
             NewChatSheetContent(
                 !waiting,
                 onAddClick = { username ->
-                    viewModel.addNewConversation(session.username, username)
+                    viewModel.addNewConversation(username, 0)
                 }
             )
         }

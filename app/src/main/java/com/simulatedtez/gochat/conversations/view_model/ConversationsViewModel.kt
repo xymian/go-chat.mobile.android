@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
@@ -68,11 +69,15 @@ class ConversationsViewModel(
     }
 
     fun rebuildConversations(conversations: List<DBConversation>, newMessages: List<UIMessage>) {
-        val newConversations = mutableListOf<DBConversation>()
+        val tempConversations = mutableListOf<DBConversation>()
+        val mutableMessages = mutableListOf<UIMessage>().apply {
+            addAll(newMessages)
+        }
         conversations.forEach { convo ->
-            val messages = newMessages.filter { it.message.sender == convo.otherUser }.sortedBy { it.message.timestamp }
+            val messages = mutableMessages.filter { it.message.sender == convo.otherUser }.sortedBy { it.message.timestamp }
             if (messages.isNotEmpty()) {
-                newConversations.add(
+                mutableMessages.removeAll(messages)
+                tempConversations.add(
                     DBConversation(
                         otherUser = convo.otherUser,
                         chatReference = convo.chatReference,
@@ -82,19 +87,45 @@ class ConversationsViewModel(
                     )
                 )
             } else {
-                newConversations.add(convo)
+                tempConversations.add(convo)
+            }
+
+            newConversations(mutableMessages).forEach { _, conversation ->
+                addNewConversation(conversation.other, conversation.unreadCount)
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            conversationsRepository.storeConversations(newConversations)
+            conversationsRepository.storeConversations(tempConversations)
         }
-        _conversations.value = newConversations
+        _conversations.value = tempConversations
     }
 
-    fun addNewConversation(user: String, other: String) {
+    private fun newConversations(mutableMessages: MutableList<UIMessage>): MutableMap<String, Conversation> {
+        val chatMap = mutableMapOf<String, Conversation>()
+        mutableMessages.forEach {
+            if (chatMap[it.message.chatReference] == null) {
+                chatMap[it.message.chatReference] = Conversation(
+                    other = it.message.sender,
+                    chatReference = it.message.chatReference,
+                    lastMessage = it.message.message,
+                    timestamp = it.message.timestamp,
+                    unreadCount = 1
+                )
+            } else {
+                chatMap[it.message.chatReference]?.apply {
+                    unreadCount += 1
+                    lastMessage = it.message.message
+                    timestamp = it.message.timestamp
+                }
+            }
+        }
+        return chatMap
+    }
+
+    fun addNewConversation(other: String, messageCount: Int) {
         _waiting.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            conversationsRepository.addNewChat(user, other) { isAdded ->
+            conversationsRepository.addNewChat(session.username, other, messageCount) { isAdded ->
                 if (isAdded) {
                     viewModelScope.launch(Dispatchers.IO) {
                         conversationsRepository.connectToChatService()
