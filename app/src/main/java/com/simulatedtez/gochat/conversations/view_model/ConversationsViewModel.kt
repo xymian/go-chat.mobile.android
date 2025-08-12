@@ -94,7 +94,13 @@ class ConversationsViewModel(
     fun addNewConversation(user: String, other: String) {
         _waiting.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            conversationsRepository.addNewChat(user, other)
+            conversationsRepository.addNewChat(user, other) { isAdded ->
+                if (isAdded) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        conversationsRepository.connectToChatService()
+                    }
+                }
+            }
         }
     }
 
@@ -117,14 +123,6 @@ class ConversationsViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             conversationsRepository.connectToChatService()
         }
-    }
-
-    fun pauseChat() {
-        conversationsRepository.pauseChatService()
-    }
-
-    fun resumeChat() {
-        conversationsRepository.resumeChatService()
     }
 
     override fun onClose(code: Int, reason: String) {

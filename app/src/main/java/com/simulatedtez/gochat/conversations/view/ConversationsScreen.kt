@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,20 +57,24 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.simulatedtez.gochat.GoChatApplication
 import com.simulatedtez.gochat.R
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.conversations.DBConversation
-import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
+import com.simulatedtez.gochat.utils.INetworkMonitor
+import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
 import io.ktor.websocket.Frame
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions) {
+
+    val app = LocalContext.current.applicationContext as GoChatApplication
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -87,6 +93,17 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    val networkCallbacks = object: NetworkMonitor.Callbacks {
+        override fun onAvailable() {
+            viewModel.connectToChatService()
+        }
+
+        override fun onLost() {
+
+        }
+    }
+    (app as INetworkMonitor).setCallback(networkCallbacks)
 
     LaunchedEffect(isConnected) {
         isConnected?.let {

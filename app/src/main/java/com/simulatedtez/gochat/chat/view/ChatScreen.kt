@@ -102,14 +102,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
             if (hasFinishedInitialMessagesLoad) {
-                chatViewModel.connectToChatService()
+                chatViewModel.connectAndSendPendingMessages()
             }
         }
 
         override fun onLost() {
-            if (hasFinishedInitialMessagesLoad) {
-                chatViewModel.pauseChat()
-            }
+
         }
     }
     (app as INetworkMonitor).setCallback(networkCallbacks)
@@ -123,13 +121,10 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     chatViewModel.loadMessages()
                 }
                 Lifecycle.Event.ON_PAUSE -> {
-                    if (hasFinishedInitialMessagesLoad) {
-                        chatViewModel.pauseChat()
-                    }
                 }
                 Lifecycle.Event.ON_RESUME -> {
                     if (chatViewModel.isChatServiceConnected()) {
-                        chatViewModel.resumeChat()
+                        chatViewModel.connectAndSendPendingMessages()
                     }
                 }
                 Lifecycle.Event.ON_DESTROY -> {

@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
+import java.time.LocalDateTime
 import java.util.Date
 import java.util.UUID
 
@@ -85,7 +86,7 @@ class ChatViewModel(
             message = message,
             sender = chatInfo.username,
             receiver = chatInfo.recipientsUsernames[0],
-            timestamp = Date().toISOString(),
+            timestamp = LocalDateTime.now().toISOString(),
             chatReference = chatInfo.chatReference,
             ack = false
         )
@@ -117,14 +118,6 @@ class ChatViewModel(
 
     fun exitChat() {
         chatRepo.killChatService()
-    }
-
-    fun pauseChat() {
-        chatRepo.pauseChatService()
-    }
-
-    fun resumeChat() {
-        chatRepo.resumeChatService()
     }
 
     override fun onMessageDelivered(message: Message) {

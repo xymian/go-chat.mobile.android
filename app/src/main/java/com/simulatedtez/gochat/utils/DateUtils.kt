@@ -1,6 +1,9 @@
 package com.simulatedtez.gochat.utils
 
+import android.icu.util.TimeZone
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -8,17 +11,16 @@ import java.util.Date
 
 fun formatTimestamp(isoString: String): String {
     return try {
-        val instant = Instant.parse(isoString)
+        val instant = LocalDateTime.parse(isoString)
         DateTimeFormatter.ofPattern("hh:mm a")
-            .withZone(ZoneOffset.systemDefault())
             .format(instant)
     } catch (e: Exception) {
         ""
     }
 }
 
-fun Date.toISOString(): String {
+fun LocalDateTime.toISOString(): String {
     return DateTimeFormatter.ofPattern(
-        "yyyy-MM-dd'T'HH:mm:ss'Z'"
-    ).withZone(ZoneOffset.systemDefault()).format(this.toInstant())
+        "yyyy-MM-dd'T'HH:mm:ss"
+    ).format(this)
 }

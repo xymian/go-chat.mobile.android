@@ -31,6 +31,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
+import java.time.LocalDateTime
 import java.util.Date
 
 class ConversationsRepository(
@@ -69,7 +70,7 @@ class ConversationsRepository(
                     timestamp = message.timestamp,
                     chatReference = message.chatReference,
                     ack = true,
-                    deliveredTimestamp = Date().toISOString(),
+                    deliveredTimestamp = LocalDateTime.now().toISOString(),
                     seenTimestamp = message.seenTimestamp
                 )
             }
@@ -86,29 +87,10 @@ class ConversationsRepository(
         }
     }
 
-    /*fun connectAndSendPendingMessages() {
-        context.launch(Dispatchers.IO) {
-            val pendingMessages = mutableListOf<DBMessage>()
-            pendingMessages.addAll(chatDb.getUndeliveredMessages(session.username, chatInfo.chatReference))
-            pendingMessages.addAll(chatDb.getPendingMessages(chatInfo.chatReference))
-            context.launch(Dispatchers.Main) {
-                chatService.connectAndSend(pendingMessages.toMessages())
-            }
-        }
-    }*/
-
     fun killChatService() {
         chatService.disconnect()
         chatService = ChatServiceManager.Builder<Message>()
             .build(Message.serializer())
-    }
-
-    fun pauseChatService() {
-        chatService.pause()
-    }
-
-    fun resumeChatService() {
-        chatService.resume()
     }
 
     fun setListener(listener: ConversationEventListener) {
@@ -148,7 +130,7 @@ class ConversationsRepository(
         conversationDB.insertConversations(conversations)
     }
 
-    suspend fun addNewChat(username: String, otherUser: String) {
+    suspend fun addNewChat(username: String, otherUser: String, completion: (isSuccess: Boolean) -> Unit) {
         val params = StartNewChatParams(
             request = StartNewChatParams.Request(
                 user = username, other = otherUser
@@ -173,12 +155,14 @@ class ConversationsRepository(
                                )
                            }
                            context.launch(Dispatchers.Main) {
+                               completion(true)
                                conversationEventListener?.onNewChatAdded(it)
                            }
                        }
                    }
                    is IResponse.Failure -> {
                        context.launch(Dispatchers.Main) {
+                           completion(false)
                            conversationEventListener?.onAddNewChatFailed(response)
                        }
                    }
@@ -253,7 +237,7 @@ class ConversationsRepository(
                 timestamp = it.timestamp,
                 chatReference = it.chatReference,
                 ack = true,
-                deliveredTimestamp = Date().toISOString(),
+                deliveredTimestamp = LocalDateTime.now().toISOString(),
                 seenTimestamp = it.seenTimestamp
             )
         }

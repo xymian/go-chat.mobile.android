@@ -29,6 +29,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import okhttp3.Response
+import java.time.LocalDateTime
 import java.util.Date
 
 class ChatRepository(
@@ -71,7 +72,7 @@ class ChatRepository(
                     timestamp = message.timestamp,
                     chatReference = message.chatReference,
                     ack = true,
-                    deliveredTimestamp = Date().toISOString(),
+                    deliveredTimestamp = LocalDateTime.now().toISOString(),
                     seenTimestamp = message.seenTimestamp
                 )
             }
@@ -100,14 +101,6 @@ class ChatRepository(
         chatService.disconnect()
         chatService = ChatServiceManager.Builder<Message>()
             .build(Message.serializer())
-    }
-
-    fun pauseChatService() {
-        chatService.pause()
-    }
-
-    fun resumeChatService() {
-        chatService.resume()
     }
 
     fun setChatEventListener(listener: ChatEventListener) {
@@ -228,7 +221,7 @@ class ChatRepository(
                 timestamp = it.timestamp,
                 chatReference = it.chatReference,
                 ack = true,
-                deliveredTimestamp = Date().toISOString(),
+                deliveredTimestamp = LocalDateTime.now().toISOString(),
                 seenTimestamp = it.seenTimestamp
             )
         }
