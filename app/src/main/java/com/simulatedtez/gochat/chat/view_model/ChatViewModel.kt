@@ -180,8 +180,9 @@ class ChatViewModel(
         TODO("Not yet implemented")
     }
 
-    fun cancel() {
+    override fun onCleared() {
         viewModelScope.cancel()
+        chatRepo.cancel()
     }
 
     fun isChatServiceConnected(): Boolean {

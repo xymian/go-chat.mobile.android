@@ -124,6 +124,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.killService()
         }
     }
 

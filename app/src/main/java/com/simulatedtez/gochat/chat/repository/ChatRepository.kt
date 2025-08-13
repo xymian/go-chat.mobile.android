@@ -26,6 +26,7 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import okhttp3.Response
@@ -267,5 +268,9 @@ class ChatRepository(
             }
         }
         return messages
+    }
+
+    fun cancel() {
+        context.cancel()
     }
 }

@@ -12,13 +12,11 @@ import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
-import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.AddNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsUsecase
 import com.simulatedtez.gochat.conversations.remote.models.NewChatResponse
-import com.simulatedtez.gochat.conversations.toConversations
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
@@ -32,7 +30,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import java.time.LocalDateTime
-import java.util.Date
 
 class ConversationsRepository(
     private val addNewChatUsecase: AddNewChatUsecase,
@@ -87,10 +84,8 @@ class ConversationsRepository(
         }
     }
 
-    fun killChatService() {
+    fun killService() {
         chatService.disconnect()
-        chatService = ChatServiceManager.Builder<Message>()
-            .build(Message.serializer())
     }
 
     fun setListener(listener: ConversationEventListener) {
@@ -173,10 +168,6 @@ class ConversationsRepository(
         })
     }
 
-    fun cancel() {
-        context.cancel()
-    }
-
     override fun onClose(code: Int, reason: String) {
         conversationEventListener?.onClose(code, reason)
     }
@@ -186,7 +177,8 @@ class ConversationsRepository(
     }
 
     override fun onDisconnect(t: Throwable, response: okhttp3.Response?) {
-
+        Napier.d(response?.message ?: "unknown")
+        conversationEventListener?.onDisconnect(t, response)
     }
 
     override fun onError(response: ChatServiceErrorResponse) {
@@ -273,5 +265,9 @@ class ConversationsRepository(
             }
         }
         return messages
+    }
+
+    fun cancel() {
+        context.cancel()
     }
 }

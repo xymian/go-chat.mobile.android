@@ -30,6 +30,7 @@ import com.simulatedtez.gochat.remote.client
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -57,10 +58,6 @@ class ConversationsViewModel(
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
-
-    init {
-        fetchConversations()
-    }
 
     fun fetchConversations() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -135,6 +132,10 @@ class ConversationsViewModel(
         }
     }
 
+    fun killService() {
+        conversationsRepository.killService()
+    }
+
     override fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>) {
         _waiting.value = false
         if (error.response?.statusCode == HttpStatusCode.NotFound.value) {
@@ -189,6 +190,11 @@ class ConversationsViewModel(
 
     fun resetNewMessagesFlow() {
         _newMessages.value = hashSetOf()
+    }
+
+    override fun onCleared() {
+        viewModelScope.cancel()
+        conversationsRepository.cancel()
     }
 }
 
