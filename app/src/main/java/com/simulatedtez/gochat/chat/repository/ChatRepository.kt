@@ -20,6 +20,7 @@ import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
@@ -140,14 +141,14 @@ class ChatRepository(
             )
         )
         createChatRoomUsecase.call(
-            params = params, object: IResponseHandler<String, IResponse<String>> {
-                override fun onResponse(response: IResponse<String>) {
+            params = params, object: IResponseHandler<ParentResponse<String>, IResponse<ParentResponse<String>>> {
+                override fun onResponse(response: IResponse<ParentResponse<String>>) {
                     when(response) {
                         is IResponse.Success -> {
                             onSuccess()
                         }
                         is IResponse.Failure -> {
-                            Napier.d(response.response ?: "unknown")
+                            Napier.d(response.response?.message ?: "unknown")
                         }
                         else -> {
 

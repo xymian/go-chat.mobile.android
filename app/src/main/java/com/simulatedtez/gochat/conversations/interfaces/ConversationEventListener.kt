@@ -9,4 +9,5 @@ import com.simulatedtez.gochat.remote.ParentResponse
 interface ConversationEventListener: SocketConnection, MessageReceiver {
     fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>)
     fun onNewChatAdded(chat: NewChatResponse)
+    fun onError(response: IResponse.Failure<ParentResponse<String>>)
 }

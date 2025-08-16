@@ -63,6 +63,7 @@ import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.GoChatApplication
 import com.simulatedtez.gochat.R
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
@@ -94,6 +95,8 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val newMessages by viewModel.newMessages.collectAsState()
     val isConnected by viewModel.isConnected.observeAsState()
 
+    val tokenExpired by viewModel.tokenExpired.observeAsState()
+
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
@@ -124,7 +127,15 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.killService()
+        }
+    }
+
+    LaunchedEffect(tokenExpired) {
+        tokenExpired?.let {
+            if (it) {
+                navigate(AuthScreens.LOGIN.name)
+                viewModel.resetTokenExpired()
+            }
         }
     }
 

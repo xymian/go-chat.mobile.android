@@ -4,16 +4,17 @@ import com.simulatedtez.gochat.chat.remote.api_services.IChatApiService
 import com.simulatedtez.gochat.remote.IEndpointCaller
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
+import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.RemoteParams
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 class CreateChatRoomUsecase(
     private val chatApiService: IChatApiService
-): IEndpointCaller<CreateChatRoomParams, String, IResponse<String>> {
+): IEndpointCaller<CreateChatRoomParams, ParentResponse<String>, IResponse<ParentResponse<String>>> {
     override suspend fun call(
         params: CreateChatRoomParams,
-        handler: IResponseHandler<String, IResponse<String>>?
+        handler: IResponseHandler<ParentResponse<String>, IResponse<ParentResponse<String>>>?
     ) {
         handler?.onResponse(chatApiService.createChatRoom(params))
     }

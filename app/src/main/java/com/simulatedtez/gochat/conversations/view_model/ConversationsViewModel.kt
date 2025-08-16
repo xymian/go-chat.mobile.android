@@ -40,6 +40,9 @@ class ConversationsViewModel(
     private val conversationsRepository: ConversationsRepository
 ): ViewModel(), ConversationEventListener {
 
+    private val _tokenExpired = MutableLiveData<Boolean>()
+    val tokenExpired: LiveData<Boolean> = _tokenExpired
+
     private val _waiting = MutableLiveData<Boolean>()
     val waiting: LiveData<Boolean> = _waiting
 
@@ -58,6 +61,10 @@ class ConversationsViewModel(
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
+
+    fun resetTokenExpired() {
+        _tokenExpired.value = false
+    }
 
     fun fetchConversations() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -149,6 +156,12 @@ class ConversationsViewModel(
             chatReference = chat.chatReference
         )
         _waiting.value = false
+    }
+
+    override fun onError(response: IResponse.Failure<ParentResponse<String>>) {
+        if (response.response?.statusCode == HttpStatusCode.Unauthorized.value) {
+            _tokenExpired.value = true
+        }
     }
 
     fun connectToChatService() {

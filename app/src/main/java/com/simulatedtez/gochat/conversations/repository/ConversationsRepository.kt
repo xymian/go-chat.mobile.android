@@ -23,6 +23,7 @@ import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -103,14 +104,17 @@ class ConversationsRepository(
             )
         )
         createConversationsUsecase.call(
-            params = params, object: IResponseHandler<String, IResponse<String>> {
-                override fun onResponse(response: IResponse<String>) {
+            params = params, object: IResponseHandler<ParentResponse<String>, IResponse<ParentResponse<String>>> {
+                override fun onResponse(response: IResponse<ParentResponse<String>>) {
                     when(response) {
                         is IResponse.Success -> {
                             onSuccess()
                         }
                         is IResponse.Failure -> {
-                            Napier.d(response.response ?: "unknown")
+                            Napier.d(response.response?.message ?: "unknown")
+                            context.launch(Dispatchers.Main) {
+                                conversationEventListener?.onError(response)
+                            }
                         }
                         else -> {
 
