@@ -141,11 +141,11 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
     LaunchedEffect(isConnected) {
         isConnected?.let {
-            if (it) {
+            /*if (it) {
                 snackbarHostState.showSnackbar("socket is connected")
             } else {
                 snackbarHostState.showSnackbar("socket is disconnected")
-            }
+            }*/
         }
     }
 

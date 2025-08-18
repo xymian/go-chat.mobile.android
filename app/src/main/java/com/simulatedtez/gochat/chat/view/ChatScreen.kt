@@ -18,9 +18,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -372,7 +374,8 @@ fun MessageStatusIndicator(status: MessageStatus) {
     val (icon, color) = when (status) {
         MessageStatus.SENDING -> Icons.Default.Schedule to Color.Gray
         MessageStatus.SENT -> Icons.Default.Check to MaterialTheme.colorScheme.primary
-        MessageStatus.DELIVERED -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
+        MessageStatus.DELIVERED -> Icons.Default.DoneAll to MaterialTheme.colorScheme.primary
+        MessageStatus.SEEN -> Icons.Default.Visibility to MaterialTheme.colorScheme.primary
         else -> Icons.Default.Error to MaterialTheme.colorScheme.error
     }
 

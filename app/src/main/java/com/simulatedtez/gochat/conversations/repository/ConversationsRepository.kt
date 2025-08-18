@@ -44,7 +44,7 @@ class ConversationsRepository(
 
     private var chatService = ChatServiceManager.Builder<Message>()
         .setSocketURL(
-            "${BuildConfig.WEBSOCKET_BASE_URL}/interactions/${session.username}"
+            "${BuildConfig.WEBSOCKET_BASE_URL}/conversations/${session.username}"
         )
         .setUsername(session.username)
         .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -193,49 +193,17 @@ class ConversationsRepository(
         return UserPreference.isNewChatHistory(chatRef)
     }
 
-    override fun onReceive(messages: List<Message>) {
-        if (messages.isNotEmpty()) {
-            if (!isNewChat(messages[0].chatReference)) {
-                context.launch(Dispatchers.IO) {
-                    val filteredMessages = filterNonConflictingMessages(messages)
-                    if (filteredMessages.isNotEmpty()) {
-                        context.launch(Dispatchers.Main) {
-                            conversationEventListener?.onNewMessages(filteredMessages)
-                        }
-                    }
-                }
-            } else {
-                if (messages.isNotEmpty()) {
-                    UserPreference.storeChatHistoryStatus(
-                        messages[0].chatReference, false)
-                    conversationEventListener?.onNewMessages(listOf())
+    override fun onReceive(message: Message) {
+        if (!isNewChat(message.chatReference)) {
+            context.launch(Dispatchers.IO) {
+                val dbMessage = chatDb.getMessage(message.messageReference)
+                if (dbMessage == null){
+                    conversationEventListener?.onNewMessage(message)
                 }
             }
-        }
-    }
-
-    override fun onRecipientMessagesAcknowledged(messages: List<Message>) {
-        context.launch(Dispatchers.IO) {
-            chatDb.setAsSeen(*(messages.toDBMessages().map {
-                it.messageReference to it.chatReference
-            }.toTypedArray()))
-        }
-    }
-
-    override fun onReturnMissingMessages(messages: List<Message>): List<Message> {
-        return messages.map {
-            Message(
-                id = it.id,
-                messageReference = it.messageReference,
-                message = it.message,
-                sender = it.sender,
-                receiver = it.receiver,
-                timestamp = it.timestamp,
-                chatReference = it.chatReference,
-                ack = true,
-                deliveredTimestamp = LocalDateTime.now().toISOString(),
-                seenTimestamp = it.seenTimestamp
-            )
+        } else {
+            UserPreference.storeChatHistoryStatus(
+                message.chatReference, false)
         }
     }
 
@@ -244,31 +212,6 @@ class ConversationsRepository(
         context.launch(Dispatchers.IO) {
             chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
         }
-    }
-
-    /*** for testing purposes **/
-    override fun returnMessage(message: Message, exportStatus: Boolean) {
-        val m = message
-    }
-
-    override fun onReceive(message: Message) {
-        if (!isNewChat(message.chatReference)) {
-            conversationEventListener?.onNewMessage(message)
-        } else {
-            UserPreference.storeChatHistoryStatus(
-                message.chatReference, false)
-        }
-    }
-
-    private suspend fun filterNonConflictingMessages(messages: List<Message>): List<Message> {
-        val filteredMessages = mutableListOf<Message>()
-        messages.forEach {
-            val dbMessage = chatDb.getMessage(it.messageReference)
-            if (dbMessage == null){
-                filteredMessages.add(it)
-            }
-        }
-        return messages
     }
 
     fun cancel() {

@@ -85,7 +85,11 @@ class ChatRepository(
         }
 
     fun connectToChatService() {
-        chatService.connect()
+        context.launch(Dispatchers.IO) {
+            createNewChatRoom {
+                chatService.connect()
+            }
+        }
     }
 
     fun connectAndSendPendingMessages() {
@@ -94,7 +98,9 @@ class ChatRepository(
             pendingMessages.addAll(chatDb.getUndeliveredMessages(chatInfo.username, chatInfo.chatReference))
             pendingMessages.addAll(chatDb.getPendingMessages(chatInfo.chatReference))
             context.launch(Dispatchers.Main) {
-                chatService.connectAndSend(pendingMessages.toMessages())
+                createNewChatRoom {
+                    chatService.connectAndSend(pendingMessages.toMessages())
+                }
             }
         }
     }
@@ -132,7 +138,7 @@ class ChatRepository(
         )
     }
 
-    suspend fun createNewChatRoom(onSuccess: (() -> Unit)) {
+    private suspend fun createNewChatRoom(onSuccess: (() -> Unit)) {
         val params = CreateChatRoomParams(
             request = CreateChatRoomParams.Request(
                 user = chatInfo.username,
@@ -186,49 +192,6 @@ class ChatRepository(
         chatEventListener?.onError(response)
     }
 
-    override fun onReceive(messages: List<Message>) {
-        if (!isNewChat) {
-            context.launch(Dispatchers.IO) {
-                val filteredMessages = filterNonConflictingMessages(messages)
-                if (filteredMessages.isNotEmpty()) {
-                    context.launch(Dispatchers.Main) {
-                        chatEventListener?.onConflictingMessagesDetected(filteredMessages)
-                    }
-                }
-            }
-        } else {
-            UserPreference.storeChatHistoryStatus(
-                chatInfo.chatReference, false)
-            isNewChat = false
-            chatEventListener?.onNewMessages(listOf())
-        }
-    }
-
-    override fun onRecipientMessagesAcknowledged(messages: List<Message>) {
-        context.launch(Dispatchers.IO) {
-            chatDb.setAsSeen(*(messages.toDBMessages().map {
-                it.messageReference to it.chatReference
-            }.toTypedArray()))
-        }
-    }
-
-    override fun onReturnMissingMessages(messages: List<Message>): List<Message> {
-        return messages.map {
-            Message(
-                id = it.id,
-                messageReference = it.messageReference,
-                message = it.message,
-                sender = it.sender,
-                receiver = it.receiver,
-                timestamp = it.timestamp,
-                chatReference = it.chatReference,
-                ack = true,
-                deliveredTimestamp = LocalDateTime.now().toISOString(),
-                seenTimestamp = it.seenTimestamp
-            )
-        }
-    }
-
     override fun onSent(message: Message) {
         val dbMessage = message.toDBMessage()
         context.launch(Dispatchers.IO) {
@@ -239,11 +202,6 @@ class ChatRepository(
         } else {
             chatEventListener?.onMessageSent(message)
         }
-    }
-
-    /*** for testing purposes **/
-    override fun returnMessage(message: Message, exportStatus: Boolean) {
-        val m = message
     }
 
     override fun onReceive(message: Message) {
