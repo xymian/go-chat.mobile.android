@@ -97,7 +97,7 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
 
 @Entity(tableName = "messages")
 class DBMessage(
-    @PrimaryKey val messageReference: String,
+    @PrimaryKey @ColumnInfo(name = "messageReference") override val id: String,
     @ColumnInfo(name = "textMessage") override val message: String,
     @ColumnInfo("senderUsername") override val sender: String,
     @ColumnInfo("receiverUsername") override val receiver: String,
@@ -113,6 +113,7 @@ fun DBMessage.toUIMessage(): UIMessage {
     return UIMessage(
         message = this.toMessage(),
         status = when {
+            seenTimestamp != null -> MessageStatus.SEEN
             deliveredTimestamp != null -> MessageStatus.DELIVERED
             isSent == true -> MessageStatus.SENT
             else -> MessageStatus.SENDING
@@ -128,8 +129,7 @@ fun List<DBMessage>.toUIMessages(): List<UIMessage> {
 
 fun DBMessage.toMessage(): Message {
     return Message(
-        id = "",
-        messageReference = messageReference,
+        id = id,
         sender = sender,
         receiver = receiver,
         message = message,

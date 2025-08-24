@@ -3,6 +3,8 @@ package com.simulatedtez.gochat
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.simulatedtez.gochat.utils.toISOString
+import java.time.LocalDateTime
 
 object UserPreference {
     private const val NAME = "user_pref"
@@ -10,6 +12,18 @@ object UserPreference {
 
     fun init(context: Context) {
         preferences = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+    }
+
+    fun storeCutOffDateForMarkingMessagesAsSeen(date: LocalDateTime) {
+        preferences.edit {
+            putString(CUTOFF_DATE_FOR_MARKING_MESSAGES_AS_SEEN, date.toISOString())
+        }
+    }
+
+    fun getCutOffDateForMarkingMessagesAsSeen(): String? {
+        return preferences.getString(
+            CUTOFF_DATE_FOR_MARKING_MESSAGES_AS_SEEN, null
+        )
     }
 
     fun storeUsername(value: String) {
@@ -43,3 +57,4 @@ object UserPreference {
 
 const val ACCESS_TOKEN_PREF = "access-token-pref"
 const val USERNAME_PREF = "username-pref"
+const val CUTOFF_DATE_FOR_MARKING_MESSAGES_AS_SEEN = "cut-off date for marking messages as seen"

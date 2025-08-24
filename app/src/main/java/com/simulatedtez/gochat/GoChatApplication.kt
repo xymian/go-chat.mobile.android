@@ -4,6 +4,7 @@ import android.app.Application
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
+import java.time.LocalDateTime
 
 class GoChatApplication: Application(), INetworkMonitor {
 
@@ -17,6 +18,14 @@ class GoChatApplication: Application(), INetworkMonitor {
         }
         UserPreference.getAccessToken()?.let {
             session.saveAccessToken(it)
+        }
+
+        if (UserPreference.getCutOffDateForMarkingMessagesAsSeen() == null) {
+            UserPreference.storeCutOffDateForMarkingMessagesAsSeen(
+                LocalDateTime.of(
+                    2025, 8, 23, 0, 0
+                )
+            )
         }
         networkMonitor = NetworkMonitor(this.applicationContext)
         networkMonitor.start()

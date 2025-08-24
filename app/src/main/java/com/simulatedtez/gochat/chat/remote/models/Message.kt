@@ -9,26 +9,15 @@ import models.ComparableMessage
 
 @Serializable
 open class Message(
-    @SerialName("id")
-    val id: String,
-    @SerialName("messageReference")
-    open val messageReference: String,
-    @SerialName("textMessage")
-    override val message: String,
-    @SerialName("senderUsername")
-    override val sender: String,
-    @SerialName("receiverUsername")
-    override val receiver: String,
-    @SerialName("messageTimestamp")
-    override var timestamp: String,
-    @SerialName("chatReference")
-    open val chatReference: String,
-    @SerialName("ack")
-    open val ack: Boolean? = null,
-    @SerialName("deliveredTimestamp")
-    open val deliveredTimestamp: String? = null,
-    @SerialName("seenTimestamp")
-    open var seenTimestamp: String? = null
+    @SerialName("messageReference") override val id: String,
+    @SerialName("textMessage") override val message: String,
+    @SerialName("senderUsername") override val sender: String,
+    @SerialName("receiverUsername") override val receiver: String,
+    @SerialName("messageTimestamp") override var timestamp: String,
+    @SerialName("chatReference") open val chatReference: String,
+    @SerialName("ack") open val ack: Boolean? = null,
+    @SerialName("deliveredTimestamp") open val deliveredTimestamp: String? = null,
+    @SerialName("seenTimestamp") open var seenTimestamp: String? = null
 ): ComparableMessage()
 
 fun Message.toUIMessage(): UIMessage {
@@ -46,7 +35,7 @@ fun List<Message>.toUIMessages(): List<UIMessage> {
 
 fun Message.toDBMessage(): DBMessage {
     return DBMessage(
-        messageReference = messageReference,
+        id = id,
         sender = sender,
         receiver = receiver,
         message = message,

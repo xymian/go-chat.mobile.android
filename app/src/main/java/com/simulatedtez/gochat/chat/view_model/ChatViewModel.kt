@@ -59,9 +59,6 @@ class ChatViewModel(
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
-    private val _conflictingMessages = MutableLiveData<List<UIMessage>>()
-    val conflictingMessages: LiveData<List<UIMessage>> = _conflictingMessages
-
     fun resetTokenExpired() {
         _tokenExpired.value = false
     }
@@ -80,8 +77,7 @@ class ChatViewModel(
 
     fun sendMessage(message: String) {
         val message = Message(
-            id = "",
-            messageReference = UUID.randomUUID().toString(),
+            id = UUID.randomUUID().toString(),
             message = message,
             sender = chatInfo.username,
             receiver = chatInfo.recipientsUsernames[0],
@@ -107,10 +103,8 @@ class ChatViewModel(
         }
     }
 
-    fun markMessagesAsSeen(messages: List<UIMessage>) {
-        chatRepo.markMessagesAsSeen(messages.map {
-            it.message
-        })
+    fun markMessagesAsSeen(messages: List<Message>) {
+        chatRepo.markMessagesAsSeen(messages)
     }
 
     fun connectToChatService() {
@@ -127,7 +121,11 @@ class ChatViewModel(
 
     override fun onMessageStatusUpdated(message: Message) {
         val uiMessage = message.toUIMessage()
-        uiMessage.status = MessageStatus.DELIVERED
+        if (!message.seenTimestamp.isNullOrEmpty()) {
+            uiMessage.status = MessageStatus.SEEN
+        } else {
+            uiMessage.status = MessageStatus.DELIVERED
+        }
         _updatedStatusMessage.value = (_updatedStatusMessage.value + uiMessage) as HashSet<UIMessage>
     }
 
@@ -176,9 +174,7 @@ class ChatViewModel(
     }
 
     override fun onConflictingMessagesDetected(messages: List<Message>) {
-        _conflictingMessages.value = messages.toUIMessages().apply {
-            forEach { it.status = MessageStatus.SENT }
-        }
+
     }
 
     override fun onMessagesSent(messages: List<Message>) {

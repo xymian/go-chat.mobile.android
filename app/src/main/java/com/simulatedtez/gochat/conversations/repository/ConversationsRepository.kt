@@ -8,7 +8,6 @@ import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
-import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
@@ -23,7 +22,6 @@ import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
-import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,7 +59,6 @@ class ConversationsRepository(
             ): Message {
                 return Message(
                     id = message.id,
-                    messageReference = message.messageReference,
                     message = message.message,
                     sender = message.sender,
                     receiver = message.receiver,
@@ -196,7 +193,7 @@ class ConversationsRepository(
     override fun onReceive(message: Message) {
         if (!isNewChat(message.chatReference)) {
             context.launch(Dispatchers.IO) {
-                val dbMessage = chatDb.getMessage(message.messageReference)
+                val dbMessage = chatDb.getMessage(message.id)
                 if (dbMessage == null){
                     conversationEventListener?.onNewMessage(message)
                 }
@@ -210,7 +207,7 @@ class ConversationsRepository(
     override fun onSent(message: Message) {
         val dbMessage = message.toDBMessage()
         context.launch(Dispatchers.IO) {
-            chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
+            chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
     }
 

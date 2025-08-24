@@ -58,6 +58,8 @@ class ChatRepository(
         .setMessageLabeler(socketMessageLabeler())
         .build(Message.serializer())
 
+    val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
+
     private fun socketMessageLabeler(): SocketMessageReturner<Message> =
         object : SocketMessageReturner<Message> {
             override fun returnMessage(
@@ -65,7 +67,6 @@ class ChatRepository(
             ): Message {
                 return Message(
                     id = message.id,
-                    messageReference = message.messageReference,
                     message = message.message,
                     sender = message.sender,
                     receiver = message.receiver,
@@ -115,8 +116,10 @@ class ChatRepository(
 
     fun markMessagesAsSeen(messages: List<Message>) {
         messages.forEach {
-            it.seenTimestamp = LocalDateTime.now().toISOString()
-            chatService.returnMessage(it)
+            if (it.timestamp > cutOffForMarkingMessagesAsSeen!!) {
+                it.seenTimestamp = LocalDateTime.now().toISOString()
+                chatService.returnMessage(it)
+            }
         }
     }
 
@@ -200,7 +203,7 @@ class ChatRepository(
     override fun onSent(message: Message) {
         val dbMessage = message.toDBMessage()
         context.launch(Dispatchers.IO) {
-            chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
+            chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
         if (message.deliveredTimestamp != null) {
             chatEventListener?.onMessageStatusUpdated(message)
@@ -226,7 +229,7 @@ class ChatRepository(
     private suspend fun filterNonConflictingMessages(messages: List<Message>): List<Message> {
         val filteredMessages = mutableListOf<Message>()
         messages.forEach {
-            val dbMessage = chatDb.getMessage(it.messageReference)
+            val dbMessage = chatDb.getMessage(it.id)
             if (dbMessage == null){
                 filteredMessages.add(it)
             }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -45,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,6 +99,8 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val messagesSent by chatViewModel.messagesSent.collectAsState()
     val updatedStatusMessage by chatViewModel.updatedStatusMessage.collectAsState()
 
+    val listState = rememberLazyListState()
+
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
             if (hasFinishedInitialMessagesLoad) {
@@ -144,7 +148,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         val modifiedMessages = messages.toMutableList()
         messagesSent.forEach {
             val messageIndex = modifiedMessages.indexOfFirst {
-                m -> it.message.messageReference ==  m.message.messageReference
+                m -> it.message.id ==  m.message.id
             }
             if (messageIndex != -1) {
                 modifiedMessages[messageIndex] = it
@@ -159,7 +163,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         val modifiedMessages = messages.toMutableList()
         updatedStatusMessage.forEach {
             val messageIndex = modifiedMessages.indexOfFirst {
-                    m -> it.message.messageReference ==  m.message.messageReference
+                    m -> it.message.id ==  m.message.id
             }
             if (messageIndex != -1) {
                 modifiedMessages[messageIndex] = it
@@ -231,6 +235,22 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }
     }
 
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo
+        }.collect { visibleItems ->
+            visibleItems.map {
+                messages.filterIndexed { index, m ->
+                    it.index == index && m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
+                }
+            }.forEach { visibleMessages ->
+                chatViewModel.markMessagesAsSeen(visibleMessages.map {
+                    it.message
+                })
+            }
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -261,6 +281,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
