@@ -46,8 +46,8 @@ class ConversationsViewModel(
     private val _waiting = MutableLiveData<Boolean>()
     val waiting: LiveData<Boolean> = _waiting
 
-    private val _newConversation = MutableLiveData<DBConversation>()
-    val newConversation: LiveData<DBConversation> = _newConversation
+    private val _newConversation = MutableLiveData<DBConversation?>()
+    val newConversation: LiveData<DBConversation?> = _newConversation
 
     private val _conversations = MutableLiveData<List<DBConversation>>()
     val conversations: LiveData<List<DBConversation>> = _conversations
@@ -137,6 +137,10 @@ class ConversationsViewModel(
                 }
             }
         }
+    }
+
+    fun resetAddConversation() {
+        _newConversation.value = null
     }
 
     fun killService() {

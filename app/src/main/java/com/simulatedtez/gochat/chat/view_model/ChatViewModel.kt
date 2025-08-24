@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 import java.time.LocalDateTime
-import java.util.Date
 import java.util.UUID
 
 class ChatViewModel(
@@ -42,8 +41,8 @@ class ChatViewModel(
     private val _messagesSent = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
     val messagesSent: StateFlow<HashSet<UIMessage>> = _messagesSent
 
-    private val _messageIsDelivered = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
-    val messageIsDelivered: StateFlow<HashSet<UIMessage>> = _messageIsDelivered
+    private val _updatedStatusMessage = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
+    val updatedStatusMessage: StateFlow<HashSet<UIMessage>> = _updatedStatusMessage
 
     private val _newMessages = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
     val newMessages: StateFlow<HashSet<UIMessage>> = _newMessages
@@ -76,7 +75,7 @@ class ChatViewModel(
     }
 
     fun resetMessageDeliveredFlow() {
-        _messageIsDelivered.value = hashSetOf()
+        _updatedStatusMessage.value = hashSetOf()
     }
 
     fun sendMessage(message: String) {
@@ -108,6 +107,12 @@ class ChatViewModel(
         }
     }
 
+    fun markMessagesAsSeen(messages: List<UIMessage>) {
+        chatRepo.markMessagesAsSeen(messages.map {
+            it.message
+        })
+    }
+
     fun connectToChatService() {
         chatRepo.connectToChatService()
     }
@@ -120,10 +125,10 @@ class ChatViewModel(
         chatRepo.killChatService()
     }
 
-    override fun onMessageDelivered(message: Message) {
+    override fun onMessageStatusUpdated(message: Message) {
         val uiMessage = message.toUIMessage()
         uiMessage.status = MessageStatus.DELIVERED
-        _messageIsDelivered.value = (_messageIsDelivered.value + uiMessage) as HashSet<UIMessage>
+        _updatedStatusMessage.value = (_updatedStatusMessage.value + uiMessage) as HashSet<UIMessage>
     }
 
     override fun onMessageSent(message: Message) {

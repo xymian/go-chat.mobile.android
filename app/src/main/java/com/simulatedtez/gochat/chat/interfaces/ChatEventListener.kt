@@ -16,7 +16,7 @@ interface SocketConnection {
 }
 
 interface MessageSender {
-    fun onMessageDelivered(message: Message)
+    fun onMessageStatusUpdated(message: Message)
     fun onMessagesSent(messages: List<Message>)
     fun onMessageSent(message: Message)
     fun onSend(message: Message)

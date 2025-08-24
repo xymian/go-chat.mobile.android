@@ -28,7 +28,7 @@ open class Message(
     @SerialName("deliveredTimestamp")
     open val deliveredTimestamp: String? = null,
     @SerialName("seenTimestamp")
-    open val seenTimestamp: String? = null
+    open var seenTimestamp: String? = null
 ): ComparableMessage()
 
 fun Message.toUIMessage(): UIMessage {

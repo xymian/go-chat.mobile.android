@@ -168,6 +168,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
         newConversation?.let {
             conversations.add(it)
             showBottomSheet = false
+            viewModel.resetAddConversation()
         }
     }
 

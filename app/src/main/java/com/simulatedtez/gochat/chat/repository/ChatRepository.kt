@@ -16,7 +16,6 @@ import com.simulatedtez.gochat.chat.models.ChatPage
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
-import com.simulatedtez.gochat.chat.remote.models.toDBMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
@@ -32,7 +31,6 @@ import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import okhttp3.Response
 import java.time.LocalDateTime
-import java.util.Date
 
 class ChatRepository(
     private val chatInfo: ChatInfo,
@@ -113,6 +111,13 @@ class ChatRepository(
 
     fun setChatEventListener(listener: ChatEventListener) {
         chatEventListener = listener
+    }
+
+    fun markMessagesAsSeen(messages: List<Message>) {
+        messages.forEach {
+            it.seenTimestamp = LocalDateTime.now().toISOString()
+            chatService.returnMessage(it)
+        }
     }
 
     fun sendMessage(message: Message) {
@@ -198,7 +203,7 @@ class ChatRepository(
             chatDb.setAsSent((dbMessage.messageReference to dbMessage.chatReference))
         }
         if (message.deliveredTimestamp != null) {
-            chatEventListener?.onMessageDelivered(message)
+            chatEventListener?.onMessageStatusUpdated(message)
         } else {
             chatEventListener?.onMessageSent(message)
         }

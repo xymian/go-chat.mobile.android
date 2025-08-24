@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
@@ -89,17 +88,14 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val messages = remember { mutableStateSetOf<UIMessage>() }
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
-    var resolvingMessageConflicts by remember { mutableStateOf(false) }
-    var temporaryMessageBucket = mutableSetOf<UIMessage>()
     
     val newMessages by chatViewModel.newMessages.collectAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sendMessageAttempt.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
-    val conflictingMessages by chatViewModel.conflictingMessages.observeAsState()
     val messagesSent by chatViewModel.messagesSent.collectAsState()
-    val messagesDelivered by chatViewModel.messageIsDelivered.collectAsState()
+    val updatedStatusMessage by chatViewModel.updatedStatusMessage.collectAsState()
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
         override fun onAvailable() {
@@ -159,9 +155,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         chatViewModel.resetMessagesSentFlow()
     }
 
-    LaunchedEffect(messagesDelivered) {
+    LaunchedEffect(updatedStatusMessage) {
         val modifiedMessages = messages.toMutableList()
-        messagesDelivered.forEach {
+        updatedStatusMessage.forEach {
             val messageIndex = modifiedMessages.indexOfFirst {
                     m -> it.message.messageReference ==  m.message.messageReference
             }
@@ -172,33 +168,6 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         messages.clear()
         messages.addAll(modifiedMessages)
         chatViewModel.resetMessageDeliveredFlow()
-    }
-
-    LaunchedEffect(resolvingMessageConflicts) {
-        temporaryMessageBucket = mutableSetOf()
-    }
-
-    LaunchedEffect(conflictingMessages) {
-        //TODO (for myself): consider merge instead of replace
-        conflictingMessages?.let { conflictingMsgs ->
-            resolvingMessageConflicts = true
-            val newMessages = messages.toMutableList()
-            conflictingMsgs.forEach { newMsg ->
-                val indexOfMessage = newMessages.indexOfFirst { uiMsg ->
-                    uiMsg.message.messageReference == newMsg.message.messageReference
-                }
-                if (indexOfMessage != -1) {
-                    newMessages[indexOfMessage] = newMsg
-                } else {
-                    newMessages.add(newMsg)
-                }
-            }
-            messages.clear()
-            messages.addAll(
-                (newMessages + temporaryMessageBucket).sortedBy { it.message.timestamp }
-            )
-            resolvingMessageConflicts = false
-        }
     }
 
     LaunchedEffect(hasFinishedInitialMessagesLoad) {
@@ -258,9 +227,6 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(newMessages) {
         newMessages.let {
             messages.addAll(it)
-            if (resolvingMessageConflicts) {
-                temporaryMessageBucket.addAll(newMessages)
-            }
             chatViewModel.resetNewMessagesFlow()
         }
     }
