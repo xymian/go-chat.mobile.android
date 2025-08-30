@@ -23,7 +23,11 @@ open class Message(
 fun Message.toUIMessage(): UIMessage {
     return UIMessage(
         message = this,
-        status = MessageStatus.SENDING,
+        status = when {
+            !seenTimestamp.isNullOrEmpty() -> MessageStatus.SEEN
+            !deliveredTimestamp.isNullOrEmpty() -> MessageStatus.DELIVERED
+            else -> MessageStatus.SENDING
+        }
     )
 }
 

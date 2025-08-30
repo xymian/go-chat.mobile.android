@@ -3,6 +3,7 @@ package com.simulatedtez.gochat.chat.repository
 import ChatServiceErrorResponse
 import ChatServiceManager
 import SocketMessageReturner
+import SocketMessageReturnerListener
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.DBMessage
@@ -55,7 +56,11 @@ class ChatRepository(
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
-        .setMessageLabeler(socketMessageLabeler())
+        .setMessageReturner(socketMessageLabeler(), listener = object: SocketMessageReturnerListener<Message> {
+            override fun onReturn(message: Message) {
+                updateMessage(message)
+            }
+        })
         .build(Message.serializer())
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
@@ -82,6 +87,10 @@ class ChatRepository(
                 return message.sender != chatInfo.username && message.deliveredTimestamp == null
             }
         }
+
+    private fun updateMessage(message: Message) {
+        chatEventListener?.onMessageStatusUpdated(message)
+    }
 
     fun connectToChatService() {
         context.launch(Dispatchers.IO) {
@@ -205,7 +214,7 @@ class ChatRepository(
         context.launch(Dispatchers.IO) {
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
-        if (message.deliveredTimestamp != null) {
+        if (!message.deliveredTimestamp.isNullOrEmpty()) {
             chatEventListener?.onMessageStatusUpdated(message)
         } else {
             chatEventListener?.onMessageSent(message)

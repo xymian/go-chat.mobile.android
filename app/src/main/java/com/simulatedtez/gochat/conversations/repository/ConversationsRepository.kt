@@ -49,7 +49,7 @@ class ConversationsRepository(
         .setExpectedReceivers(listOf())
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
-        .setMessageLabeler(socketMessageLabeler())
+        .setMessageReturner(socketMessageLabeler(), null)
         .build(Message.serializer())
 
     private fun socketMessageLabeler(): SocketMessageReturner<Message> {

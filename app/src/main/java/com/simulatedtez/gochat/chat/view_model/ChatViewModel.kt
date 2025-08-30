@@ -121,11 +121,6 @@ class ChatViewModel(
 
     override fun onMessageStatusUpdated(message: Message) {
         val uiMessage = message.toUIMessage()
-        if (!message.seenTimestamp.isNullOrEmpty()) {
-            uiMessage.status = MessageStatus.SEEN
-        } else {
-            uiMessage.status = MessageStatus.DELIVERED
-        }
         _updatedStatusMessage.value = (_updatedStatusMessage.value + uiMessage) as HashSet<UIMessage>
     }
 

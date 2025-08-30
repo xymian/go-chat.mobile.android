@@ -125,7 +125,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 Lifecycle.Event.ON_PAUSE -> {
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    if (chatViewModel.isChatServiceConnected()) {
+                    if (!chatViewModel.isChatServiceConnected()) {
                         chatViewModel.connectAndSendPendingMessages()
                     }
                 }
@@ -171,6 +171,13 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }
         messages.clear()
         messages.addAll(modifiedMessages)
+        chatViewModel.markMessagesAsSeen(
+            updatedStatusMessage.filter {
+                it.message.sender != session.username && it.message.seenTimestamp.isNullOrEmpty()
+            }.map {
+                it.message
+            }
+        )
         chatViewModel.resetMessageDeliveredFlow()
     }
 
