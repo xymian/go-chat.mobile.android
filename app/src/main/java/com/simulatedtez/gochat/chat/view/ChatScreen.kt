@@ -178,7 +178,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 it.message
             }
         )
-        chatViewModel.resetMessageDeliveredFlow()
+        chatViewModel.resetMessageStatusUpdateFlow()
     }
 
     LaunchedEffect(hasFinishedInitialMessagesLoad) {
@@ -246,15 +246,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         snapshotFlow {
             listState.layoutInfo.visibleItemsInfo
         }.collect { visibleItems ->
-            visibleItems.map {
-                messages.filterIndexed { index, m ->
-                    it.index == index && m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
-                }
-            }.forEach { visibleMessages ->
-                chatViewModel.markMessagesAsSeen(visibleMessages.map {
-                    it.message
-                })
+
+            val visibleMessages = visibleItems.map { item ->
+                messages.toList()[(messages.size - 1) - item.index]
             }
+
+            val unseenMessages = visibleMessages.filterIndexed { index, m ->
+                m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
+            }
+
+            chatViewModel.markMessagesAsSeen(unseenMessages.map {
+                it.message
+            })
         }
     }
 

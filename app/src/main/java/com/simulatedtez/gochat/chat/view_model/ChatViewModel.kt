@@ -71,7 +71,7 @@ class ChatViewModel(
         _messagesSent.value = hashSetOf()
     }
 
-    fun resetMessageDeliveredFlow() {
+    fun resetMessageStatusUpdateFlow() {
         _updatedStatusMessage.value = hashSetOf()
     }
 
