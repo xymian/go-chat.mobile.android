@@ -24,6 +24,10 @@ class ConversationDatabase private constructor(private val conversationsDao: Con
         }
     }
 
+    suspend fun deleteAllConversations() {
+        conversationsDao.deleteAllConversations()
+    }
+
     suspend fun getConversations(): List<DBConversation> {
         return conversationsDao.getAll()
     }
@@ -79,7 +83,7 @@ interface ConversationDao {
     suspend fun deleteByChatReference(chatRef: String)
 
     @Query("DELETE FROM conversations")
-    suspend fun deleteAll()
+    suspend fun deleteAllConversations()
 }
 
 fun DBConversation.toConversation(): Conversation {

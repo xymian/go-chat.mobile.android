@@ -34,6 +34,12 @@ object UserPreference {
         return preferences.getString(USERNAME_PREF, null)
     }
 
+    fun deleteUsername() {
+        preferences.edit {
+            remove(USERNAME_PREF)
+        }
+    }
+
     fun storeAccessToken(value: String) {
         preferences.edit {
             putString(ACCESS_TOKEN_PREF, value)
@@ -44,6 +50,12 @@ object UserPreference {
         return preferences.getString(ACCESS_TOKEN_PREF, null)
     }
 
+    fun deleteAccessToken() {
+        preferences.edit {
+            remove(ACCESS_TOKEN_PREF)
+        }
+    }
+
     fun storeChatHistoryStatus(chatRef: String, isNew: Boolean) {
         preferences.edit {
             putBoolean(chatRef, isNew)
@@ -52,6 +64,12 @@ object UserPreference {
 
     fun isNewChatHistory(chatRef: String): Boolean {
         return preferences.getBoolean(chatRef, true)
+    }
+
+    fun deleteChatHistoryStatus(chatRef: String) {
+        preferences.edit {
+            remove(chatRef)
+        }
     }
 }
 

@@ -59,7 +59,7 @@ fun NavController.LoginScreen() {
     val snackBarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val viewModelFactory = remember { LoginViewModelFactory() }
+    val viewModelFactory = remember { LoginViewModelFactory(context) }
     val loginViewModel: LoginViewModel = viewModel(factory = viewModelFactory)
 
     val loginSuccess by loginViewModel.isLoginSuccessful.observeAsState()

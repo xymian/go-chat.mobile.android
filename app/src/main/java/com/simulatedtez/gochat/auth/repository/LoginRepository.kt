@@ -9,6 +9,7 @@ import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
+import com.simulatedtez.gochat.utils.CleanupManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,14 +18,13 @@ import kotlinx.coroutines.launch
 
 class LoginRepository(
     private val loginUsecase: LoginUsecase,
+    private val cleanupManager: CleanupManager
 ) {
     private var loginEventListener: LoginEventListener? = null
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun login(username: String, password: String) {
-        UserPreference.storeUsername(username)
-        session.saveUsername(username)
         val loginParams = LoginParams(
             request = LoginParams.Request(
                 username = username,
@@ -39,10 +39,18 @@ class LoginRepository(
                         is IResponse.Success -> {
                             scope.launch(Dispatchers.Main) {
                                 response.data.data?.let {
+                                    if (session.username != username) {
+                                        scope.launch(Dispatchers.IO) {
+                                            cleanupManager.clearUserData()
+                                        }
+                                        UserPreference.storeUsername(username)
+                                        UserPreference.storeAccessToken(it.accessToken)
+                                        session.saveAccessToken(it.accessToken)
+                                        session.saveUsername(username)
+                                    }
                                     loginEventListener?.onLogin(it)
                                 }
                             }
-                            // cache login details
                         }
                         is IResponse.Failure -> {
                             scope.launch(Dispatchers.Main) {

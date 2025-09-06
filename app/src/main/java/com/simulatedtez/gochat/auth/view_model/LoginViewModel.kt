@@ -1,5 +1,6 @@
 package com.simulatedtez.gochat.auth.view_model
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -15,6 +16,7 @@ import com.simulatedtez.gochat.auth.repository.LoginRepository
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.client
+import com.simulatedtez.gochat.utils.CleanupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -42,8 +44,6 @@ class LoginViewModel(
     }
 
     override fun onLogin(loginInfo: LoginResponse) {
-        UserPreference.storeAccessToken(loginInfo.accessToken)
-        session.saveAccessToken(loginInfo.accessToken)
         _isLoginSuccessful.value = true
         _isLoggingIn.value = false
     }
@@ -57,9 +57,12 @@ class LoginViewModel(
     }
 }
 
-class LoginViewModelFactory(): ViewModelProvider.Factory {
+class LoginViewModelFactory(private val context: Context): ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repo = LoginRepository(LoginUsecase(AuthApiService(client)))
+        val repo = LoginRepository(
+            LoginUsecase(AuthApiService(client)),
+            CleanupManager.get(context)
+        )
         return LoginViewModel(repo).apply {
             repo.setEventListener(this)
         } as T

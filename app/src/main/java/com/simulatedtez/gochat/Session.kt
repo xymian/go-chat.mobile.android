@@ -12,8 +12,15 @@ open class Session private constructor() {
         private set
 
     companion object {
-        val session = object: Session() {
+        var session = object: Session() {
 
+        }
+        private set
+
+        fun clear() {
+            session = object: Session() {
+
+            }
         }
     }
 

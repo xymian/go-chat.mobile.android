@@ -63,6 +63,10 @@ class ChatDatabase private constructor(private val messagesDao: MessagesDao): IC
         return messagesDao.getPendingMessages(session.username, chatRef)
     }
 
+    override suspend fun deleteAllMessages() {
+        messagesDao.deleteAllMessages()
+    }
+
     override suspend fun getUndeliveredMessages(username: String, chatRef: String): List<DBMessage> {
         return messagesDao.getUndeliveredMessages(username, chatRef)
     }
@@ -181,4 +185,7 @@ interface MessagesDao {
 
     @Query("SELECT * FROM messages WHERE messageReference =:messageRef")
     suspend fun getMessage(messageRef: String): DBMessage?
+
+    @Query("DELETE FROM messages")
+    suspend fun deleteAllMessages()
 }
