@@ -20,21 +20,18 @@ open class Message(
     @SerialName("seenTimestamp") open var seenTimestamp: String? = null
 ): ComparableMessage()
 
-fun Message.toUIMessage(): UIMessage {
+fun Message.toUIMessage(isSent: Boolean): UIMessage {
     return UIMessage(
         message = this,
         status = when {
             !seenTimestamp.isNullOrEmpty() -> MessageStatus.SEEN
             !deliveredTimestamp.isNullOrEmpty() -> MessageStatus.DELIVERED
-            else -> MessageStatus.SENDING
+            else -> {
+                if (isSent) MessageStatus.SENT
+                else MessageStatus.SENDING
+            }
         }
     )
-}
-
-fun List<Message>.toUIMessages(): List<UIMessage> {
-    return map {
-        it.toUIMessage()
-    }
 }
 
 fun Message.toDBMessage(): DBMessage {

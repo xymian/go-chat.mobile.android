@@ -32,6 +32,8 @@ import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import okhttp3.Response
 import java.time.LocalDateTime
+import java.util.LinkedList
+import java.util.Queue
 
 class ChatRepository(
     private val chatInfo: ChatInfo,
@@ -58,12 +60,25 @@ class ChatRepository(
         .setChatServiceListener(this)
         .setMessageReturner(socketMessageLabeler(), listener = object: SocketMessageReturnerListener<Message> {
             override fun onReturn(message: Message) {
-                updateMessage(message)
+                chatEventListener?.onMessageSent(message)
             }
         })
         .build(Message.serializer())
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
+
+    private var rushedIncomingMessages: Queue<Message> = LinkedList()
+    private var rushedOutgoingMessages: Queue<Message> = LinkedList()
+    
+    fun getNextOutgoingMessage(): Message? {
+        return if (rushedOutgoingMessages.isNotEmpty()) rushedOutgoingMessages.remove()
+        else null
+    }
+
+    fun getNextMessageFromRecipient(): Message? {
+        return if (rushedIncomingMessages.isNotEmpty()) rushedIncomingMessages.remove()
+        else null
+    }
 
     private fun socketMessageLabeler(): SocketMessageReturner<Message> =
         object : SocketMessageReturner<Message> {
@@ -87,10 +102,6 @@ class ChatRepository(
                 return message.sender != chatInfo.username && message.deliveredTimestamp == null
             }
         }
-
-    private fun updateMessage(message: Message) {
-        chatEventListener?.onMessageStatusUpdated(message)
-    }
 
     fun connectToChatService() {
         context.launch(Dispatchers.IO) {
@@ -214,16 +225,23 @@ class ChatRepository(
         context.launch(Dispatchers.IO) {
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
-        if (!message.deliveredTimestamp.isNullOrEmpty()) {
-            chatEventListener?.onMessageStatusUpdated(message)
-        } else {
-            chatEventListener?.onMessageSent(message)
+        rushedOutgoingMessages.add(message)
+        rushedOutgoingMessages.add(message)
+        rushedIncomingMessages.remove()?.let {
+            if (rushedOutgoingMessages.isEmpty()) {
+                chatEventListener?.onMessageSent(message)
+            }
         }
     }
 
     override fun onReceive(message: Message) {
         if (!isNewChat) {
-            chatEventListener?.onNewMessage(message)
+            rushedIncomingMessages.add(message)
+            rushedIncomingMessages.remove()?.let {
+                if (rushedIncomingMessages.isEmpty()) {
+                    chatEventListener?.onNewMessage(it)
+                }
+            }
         } else {
             UserPreference.storeChatHistoryStatus(
                 chatInfo.chatReference, false)

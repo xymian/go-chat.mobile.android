@@ -91,13 +91,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
     
-    val newMessages by chatViewModel.newMessages.collectAsState()
+    val newMessage by chatViewModel.newMessage.observeAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sendMessageAttempt.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
-    val messagesSent by chatViewModel.messagesSent.collectAsState()
-    val updatedStatusMessage by chatViewModel.updatedStatusMessage.collectAsState()
+    val messagesSent by chatViewModel.messagesSent.observeAsState()
 
     val listState = rememberLazyListState()
 
@@ -146,39 +145,21 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     LaunchedEffect(messagesSent) {
         val modifiedMessages = messages.toMutableList()
-        messagesSent.forEach {
-            val messageIndex = modifiedMessages.indexOfFirst {
-                m -> it.message.id ==  m.message.id
-            }
-            if (messageIndex != -1) {
-                modifiedMessages[messageIndex] = it
-            }
-        }
-        messages.clear()
-        messages.addAll(modifiedMessages)
-        chatViewModel.resetMessagesSentFlow()
-    }
-
-    LaunchedEffect(updatedStatusMessage) {
-        val modifiedMessages = messages.toMutableList()
-        updatedStatusMessage.forEach {
-            val messageIndex = modifiedMessages.indexOfFirst {
-                    m -> it.message.id ==  m.message.id
-            }
-            if (messageIndex != -1) {
-                modifiedMessages[messageIndex] = it
+        messagesSent.let {
+            it?.let {
+                val messageIndex = modifiedMessages.indexOfFirst {
+                        m -> it.message.id ==  m.message.id
+                }
+                if (messageIndex != -1) {
+                    modifiedMessages[messageIndex] = it
+                }
+                messages.addAll(modifiedMessages)
+                if (messagesSent?.message?.seenTimestamp.isNullOrEmpty()) {
+                    chatViewModel.markMessagesAsSeen(listOf(messagesSent!!.message))
+                }
+                chatViewModel.getNextOutgoingMessage()
             }
         }
-        messages.clear()
-        messages.addAll(modifiedMessages)
-        chatViewModel.markMessagesAsSeen(
-            updatedStatusMessage.filter {
-                it.message.sender != session.username && it.message.seenTimestamp.isNullOrEmpty()
-            }.map {
-                it.message
-            }
-        )
-        chatViewModel.resetMessageStatusUpdateFlow()
     }
 
     LaunchedEffect(hasFinishedInitialMessagesLoad) {
@@ -235,10 +216,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }
     }
 
-    LaunchedEffect(newMessages) {
-        newMessages.let {
-            messages.addAll(it)
-            chatViewModel.resetNewMessagesFlow()
+    LaunchedEffect(newMessage) {
+        newMessage.let {
+            it?.let {
+                messages.add(it)
+                chatViewModel.getNextIncomingMessage()
+            }
         }
     }
 

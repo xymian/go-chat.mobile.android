@@ -13,12 +13,10 @@ import com.simulatedtez.gochat.chat.interfaces.ChatEventListener
 import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
-import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
-import com.simulatedtez.gochat.chat.remote.models.toUIMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.client
 import com.simulatedtez.gochat.utils.toISOString
@@ -38,14 +36,11 @@ class ChatViewModel(
     private val chatRepo: ChatRepository
 ): ViewModel(), ChatEventListener {
 
-    private val _messagesSent = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
-    val messagesSent: StateFlow<HashSet<UIMessage>> = _messagesSent
+    private val _messagesSent = MutableLiveData<UIMessage?>()
+    val messagesSent: LiveData<UIMessage?> = _messagesSent
 
-    private val _updatedStatusMessage = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
-    val updatedStatusMessage: StateFlow<HashSet<UIMessage>> = _updatedStatusMessage
-
-    private val _newMessages = MutableStateFlow<HashSet<UIMessage>>(hashSetOf())
-    val newMessages: StateFlow<HashSet<UIMessage>> = _newMessages
+    private val _newMessage = MutableLiveData<UIMessage?>()
+    val newMessage: LiveData<UIMessage?> = _newMessage
 
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
@@ -59,20 +54,24 @@ class ChatViewModel(
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
+    fun getNextIncomingMessage() {
+        chatRepo.getNextMessageFromRecipient()?.let {
+            onNewMessage(it)
+        } ?: run {
+            _newMessage.value = null
+        }
+    }
+
+    fun getNextOutgoingMessage() {
+        chatRepo.getNextOutgoingMessage()?.let {
+            onMessageSent(it)
+        } ?: run {
+            _messagesSent.value = null
+        }
+    }
+
     fun resetTokenExpired() {
         _tokenExpired.value = false
-    }
-
-    fun resetNewMessagesFlow() {
-        _newMessages.value = hashSetOf()
-    }
-
-    fun resetMessagesSentFlow() {
-        _messagesSent.value = hashSetOf()
-    }
-
-    fun resetMessageStatusUpdateFlow() {
-        _updatedStatusMessage.value = hashSetOf()
     }
 
     fun sendMessage(message: String) {
@@ -85,7 +84,7 @@ class ChatViewModel(
             chatReference = chatInfo.chatReference,
             ack = false
         )
-        _sendMessageAttempt.value = message.toUIMessage()
+        _sendMessageAttempt.value = message.toUIMessage(false)
         viewModelScope.launch(Dispatchers.IO) {
             chatRepo.sendMessage(message)
         }
@@ -119,15 +118,9 @@ class ChatViewModel(
         chatRepo.killChatService()
     }
 
-    override fun onMessageStatusUpdated(message: Message) {
-        val uiMessage = message.toUIMessage()
-        _updatedStatusMessage.value = (_updatedStatusMessage.value + uiMessage) as HashSet<UIMessage>
-    }
-
     override fun onMessageSent(message: Message) {
-        val uiMessage = message.toUIMessage()
-        uiMessage.status = MessageStatus.SENT
-        _messagesSent.value = (_messagesSent.value + uiMessage) as HashSet<UIMessage>
+        val uiMessage = message.toUIMessage(true)
+        _newMessage.value = uiMessage
     }
 
     override fun onClose(code: Int, reason: String) {
@@ -155,25 +148,16 @@ class ChatViewModel(
         }
     }
 
-    override fun onNewMessages(messages: List<Message>) {
+    /*override fun onNewMessages(messages: List<Message>) {
         val uiMessages = messages.toUIMessages().apply {
             forEach { it.status = MessageStatus.SENT }
         }
         _newMessages.value = (_newMessages.value + uiMessages) as HashSet<UIMessage>
-    }
+    }*/
 
     override fun onNewMessage(message: Message) {
-        val uiMessage = message.toUIMessage()
-        uiMessage.status = MessageStatus.SENT
-        _newMessages.value = (_newMessages.value + uiMessage) as HashSet<UIMessage>
-    }
-
-    override fun onConflictingMessagesDetected(messages: List<Message>) {
-
-    }
-
-    override fun onMessagesSent(messages: List<Message>) {
-        TODO("Not yet implemented")
+        val uiMessage = message.toUIMessage(true)
+        _newMessage.value = uiMessage
     }
 
     override fun onCleared() {

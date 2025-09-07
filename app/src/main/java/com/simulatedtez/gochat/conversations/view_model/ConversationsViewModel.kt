@@ -14,7 +14,6 @@ import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
-import com.simulatedtez.gochat.chat.remote.models.toUIMessages
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
@@ -192,15 +191,8 @@ class ConversationsViewModel(
 
     }
 
-    override fun onNewMessages(messages: List<Message>) {
-        val uiMessages = messages.toUIMessages().apply {
-            forEach { it.status = MessageStatus.SENT }
-        }
-        _newMessages.value = (_newMessages.value + uiMessages) as HashSet<UIMessage>
-    }
-
     override fun onNewMessage(message: Message) {
-        val uiMessage = message.toUIMessage()
+        val uiMessage = message.toUIMessage(true)
         uiMessage.status = MessageStatus.SENT
         _newMessages.value = (_newMessages.value + uiMessage) as HashSet<UIMessage>
     }
