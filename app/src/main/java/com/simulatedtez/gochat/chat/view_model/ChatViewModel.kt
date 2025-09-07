@@ -120,7 +120,7 @@ class ChatViewModel(
 
     override fun onMessageSent(message: Message) {
         val uiMessage = message.toUIMessage(true)
-        _newMessage.value = uiMessage
+        _messagesSent.value = uiMessage
     }
 
     override fun onClose(code: Int, reason: String) {

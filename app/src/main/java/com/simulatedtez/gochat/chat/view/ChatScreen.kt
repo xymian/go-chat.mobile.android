@@ -144,18 +144,19 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     }
 
     LaunchedEffect(messagesSent) {
-        val modifiedMessages = messages.toMutableList()
         messagesSent.let {
             it?.let {
+                val modifiedMessages = messages.toMutableList()
                 val messageIndex = modifiedMessages.indexOfFirst {
                         m -> it.message.id ==  m.message.id
                 }
                 if (messageIndex != -1) {
                     modifiedMessages[messageIndex] = it
                 }
+                messages.clear()
                 messages.addAll(modifiedMessages)
                 if (messagesSent?.message?.seenTimestamp.isNullOrEmpty()) {
-                    chatViewModel.markMessagesAsSeen(listOf(messagesSent!!.message))
+                    //chatViewModel.markMessagesAsSeen(listOf(messagesSent!!.message))
                 }
                 chatViewModel.getNextOutgoingMessage()
             }
@@ -238,9 +239,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
             }
 
-            chatViewModel.markMessagesAsSeen(unseenMessages.map {
+            /*chatViewModel.markMessagesAsSeen(unseenMessages.map {
                 it.message
-            })
+            })*/
         }
     }
 

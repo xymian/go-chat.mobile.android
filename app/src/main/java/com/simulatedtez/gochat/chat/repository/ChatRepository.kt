@@ -67,8 +67,8 @@ class ChatRepository(
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
 
-    private var rushedIncomingMessages: Queue<Message> = LinkedList()
-    private var rushedOutgoingMessages: Queue<Message> = LinkedList()
+    private var rushedIncomingMessages: LinkedList<Message> = LinkedList()
+    private var rushedOutgoingMessages: LinkedList<Message> = LinkedList()
     
     fun getNextOutgoingMessage(): Message? {
         return if (rushedOutgoingMessages.isNotEmpty()) rushedOutgoingMessages.remove()
@@ -225,22 +225,48 @@ class ChatRepository(
         context.launch(Dispatchers.IO) {
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
-        rushedOutgoingMessages.add(message)
-        rushedOutgoingMessages.add(message)
-        rushedIncomingMessages.remove()?.let {
-            if (rushedOutgoingMessages.isEmpty()) {
-                chatEventListener?.onMessageSent(message)
+
+        var index = -1
+        rushedOutgoingMessages.filterIndexed { i, msg ->
+            val isTheSame = msg.id == message.id
+            if (isTheSame) {
+                index = i
+                true
+            } else {
+                false
             }
+        }
+        if (index > -1) {
+            rushedOutgoingMessages[index] = message
+        } else {
+            rushedOutgoingMessages.add(message)
+        }
+        val topMessage = rushedOutgoingMessages.remove()
+        if (rushedOutgoingMessages.isEmpty()) {
+            chatEventListener?.onMessageSent(topMessage)
         }
     }
 
     override fun onReceive(message: Message) {
         if (!isNewChat) {
-            rushedIncomingMessages.add(message)
-            rushedIncomingMessages.remove()?.let {
-                if (rushedIncomingMessages.isEmpty()) {
-                    chatEventListener?.onNewMessage(it)
+            var index = -1
+            rushedIncomingMessages.filterIndexed { i, msg ->
+                val isTheSame = msg.id == message.id
+                if (isTheSame) {
+                    index = i
+                    true
+                } else {
+                    false
                 }
+            }
+            if (index > -1) {
+                rushedIncomingMessages[index] = message
+            } else {
+                rushedIncomingMessages.add(message)
+            }
+            val topMessage = rushedIncomingMessages.remove()
+            if (rushedIncomingMessages.isEmpty()) {
+                chatEventListener?.onNewMessage(topMessage)
             }
         } else {
             UserPreference.storeChatHistoryStatus(
