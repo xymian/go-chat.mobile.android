@@ -39,16 +39,18 @@ class LoginRepository(
                         is IResponse.Success -> {
                             scope.launch(Dispatchers.Main) {
                                 response.data.data?.let {
-                                    if (session.username != username) {
-                                        scope.launch(Dispatchers.IO) {
+                                    scope.launch(Dispatchers.IO) {
+                                        if (session.username != username) {
                                             cleanupManager.clearUserData()
+                                            UserPreference.storeUsername(username)
+                                            UserPreference.storeAccessToken(it.accessToken)
+                                            session.saveAccessToken(it.accessToken)
+                                            session.saveUsername(username)
                                         }
-                                        UserPreference.storeUsername(username)
-                                        UserPreference.storeAccessToken(it.accessToken)
-                                        session.saveAccessToken(it.accessToken)
-                                        session.saveUsername(username)
+                                        scope.launch(Dispatchers.Main) {
+                                            loginEventListener?.onLogin(it)
+                                        }
                                     }
-                                    loginEventListener?.onLogin(it)
                                 }
                             }
                         }
