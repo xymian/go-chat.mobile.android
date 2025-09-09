@@ -33,7 +33,6 @@ import listeners.ChatServiceListener
 import okhttp3.Response
 import java.time.LocalDateTime
 import java.util.LinkedList
-import java.util.Queue
 
 class ChatRepository(
     private val chatInfo: ChatInfo,
@@ -226,6 +225,14 @@ class ChatRepository(
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
 
+        queueUpOutgoingMessage(message) { topMessage ->
+            chatEventListener?.onMessageSent(topMessage)
+        }
+    }
+
+    private fun queueUpOutgoingMessage(
+        message: Message, onQueueEmpty: (topMessage: Message) -> Unit
+    ) {
         var index = -1
         rushedOutgoingMessages.filterIndexed { i, msg ->
             val isTheSame = msg.id == message.id
@@ -243,51 +250,51 @@ class ChatRepository(
         }
         val topMessage = rushedOutgoingMessages.remove()
         if (rushedOutgoingMessages.isEmpty()) {
-            chatEventListener?.onMessageSent(topMessage)
+            onQueueEmpty(topMessage)
         }
     }
 
     override fun onReceive(message: Message) {
         if (!isNewChat) {
-            var index = -1
-            rushedIncomingMessages.filterIndexed { i, msg ->
-                val isTheSame = msg.id == message.id
-                if (isTheSame) {
-                    index = i
-                    true
-                } else {
-                    false
-                }
-            }
-            if (index > -1) {
-                rushedIncomingMessages[index] = message
-            } else {
-                rushedIncomingMessages.add(message)
-            }
-            val topMessage = rushedIncomingMessages.remove()
-            if (rushedIncomingMessages.isEmpty()) {
+            queueUpIncomingMessage(message) { topMessage ->
                 chatEventListener?.onNewMessage(topMessage)
             }
         } else {
             UserPreference.storeChatHistoryStatus(
                 chatInfo.chatReference, false)
             isNewChat = false
+            queueUpIncomingMessage(message) { topMessage ->
+                chatEventListener?.onNewMessage(topMessage)
+            }
+        }
+    }
+
+    private fun queueUpIncomingMessage(
+        message: Message, onQueueEmpty: (topMessage: Message) -> Unit
+    ) {
+        var index = -1
+        rushedIncomingMessages.filterIndexed { i, msg ->
+            val isTheSame = msg.id == message.id
+            if (isTheSame) {
+                index = i
+                true
+            } else {
+                false
+            }
+        }
+        if (index > -1) {
+            rushedIncomingMessages[index] = message
+        } else {
+            rushedIncomingMessages.add(message)
+        }
+        val topMessage = rushedIncomingMessages.remove()
+        if (rushedIncomingMessages.isEmpty()) {
+            onQueueEmpty(topMessage)
         }
     }
 
     fun isChatServiceConnected(): Boolean {
         return chatService.socketIsConnected
-    }
-
-    private suspend fun filterNonConflictingMessages(messages: List<Message>): List<Message> {
-        val filteredMessages = mutableListOf<Message>()
-        messages.forEach {
-            val dbMessage = chatDb.getMessage(it.id)
-            if (dbMessage == null){
-                filteredMessages.add(it)
-            }
-        }
-        return messages
     }
 
     fun cancel() {

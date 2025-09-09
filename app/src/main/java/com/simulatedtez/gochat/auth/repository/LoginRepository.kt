@@ -44,9 +44,10 @@ class LoginRepository(
                                             cleanupManager.clearUserData()
                                             UserPreference.storeUsername(username)
                                             UserPreference.storeAccessToken(it.accessToken)
-                                            session.saveAccessToken(it.accessToken)
-                                            session.saveUsername(username)
                                         }
+                                        session.saveAccessToken(it.accessToken)
+                                        session.saveUsername(username)
+
                                         scope.launch(Dispatchers.Main) {
                                             loginEventListener?.onLogin(it)
                                         }

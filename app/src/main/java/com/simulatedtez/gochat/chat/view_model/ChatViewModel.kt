@@ -24,8 +24,6 @@ import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 import java.time.LocalDateTime
@@ -85,9 +83,7 @@ class ChatViewModel(
             ack = false
         )
         _sendMessageAttempt.value = message.toUIMessage(false)
-        viewModelScope.launch(Dispatchers.IO) {
-            chatRepo.sendMessage(message)
-        }
+        chatRepo.sendMessage(message)
     }
 
     fun loadMessages() {
@@ -147,13 +143,6 @@ class ChatViewModel(
             _tokenExpired.value = true
         }
     }
-
-    /*override fun onNewMessages(messages: List<Message>) {
-        val uiMessages = messages.toUIMessages().apply {
-            forEach { it.status = MessageStatus.SENT }
-        }
-        _newMessages.value = (_newMessages.value + uiMessages) as HashSet<UIMessage>
-    }*/
 
     override fun onNewMessage(message: Message) {
         val uiMessage = message.toUIMessage(true)
