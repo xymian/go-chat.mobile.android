@@ -203,11 +203,12 @@ class ConversationsRepository(
             context.launch(Dispatchers.IO) {
                 val dbMessage = chatDb.getMessage(message.id)
                 if (dbMessage == null){
-                    conversationEventListener?.onNewMessage(message)
+                    queueUpIncomingMessage(message) { topMessage ->
+                        context.launch(Dispatchers.Main) {
+                            conversationEventListener?.onNewMessage(topMessage)
+                        }
+                    }
                 }
-            }
-            queueUpIncomingMessage(message) { topMessage ->
-                conversationEventListener?.onNewMessage(topMessage)
             }
         } else {
             UserPreference.storeChatHistoryStatus(
