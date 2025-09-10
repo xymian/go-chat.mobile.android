@@ -110,28 +110,6 @@ class ConversationsViewModel(
         _conversations.value = tempConversations
     }
 
-    /*private fun newConversations(mutableMessages: MutableList<UIMessage>): MutableMap<String, Conversation> {
-        val chatMap = mutableMapOf<String, Conversation>()
-        mutableMessages.forEach {
-            if (chatMap[it.message.chatReference] == null) {
-                chatMap[it.message.chatReference] = Conversation(
-                    other = it.message.sender,
-                    chatReference = it.message.chatReference,
-                    lastMessage = it.message.message,
-                    timestamp = it.message.timestamp,
-                    unreadCount = 1
-                )
-            } else {
-                chatMap[it.message.chatReference]?.apply {
-                    unreadCount += 1
-                    lastMessage = it.message.message
-                    timestamp = it.message.timestamp
-                }
-            }
-        }
-        return chatMap
-    }*/
-
     fun addNewConversation(other: String, messageCount: Int) {
         _waiting.value = true
         viewModelScope.launch(Dispatchers.IO) {
