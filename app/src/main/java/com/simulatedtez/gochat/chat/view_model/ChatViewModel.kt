@@ -40,23 +40,29 @@ class ChatViewModel(
     private val _newMessage = MutableLiveData<UIMessage?>()
     val newMessage: LiveData<UIMessage?> = _newMessage
 
+    private val _newMessages = MutableLiveData<List<UIMessage>?>()
+    val newMessages: LiveData<List<UIMessage>?> = _newMessages
+
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
-    private val _sendMessageAttempt = MutableLiveData<UIMessage>()
-    val sendMessageAttempt: LiveData<UIMessage> = _sendMessageAttempt
+    private val _sendMessageAttempt = MutableLiveData<UIMessage?>()
+    val sendMessageAttempt: LiveData<UIMessage?> = _sendMessageAttempt
 
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
     fun getNextIncomingMessage() {
         chatRepo.getNextMessageFromRecipient()?.let {
-            onNewMessage(it)
+            queueMessage(it)
         } ?: run {
-            _newMessage.value = null
+            _newMessages.value = messageQueue.toList().map {
+                it.toUIMessage(true)
+            }
+            messageQueue.clear()
         }
     }
 
@@ -66,6 +72,18 @@ class ChatViewModel(
         } ?: run {
             _messagesSent.value = null
         }
+    }
+
+    fun resetSendAttempt() {
+        _sendMessageAttempt.value = null
+    }
+
+    fun resetNewMessages() {
+        _newMessages.value = null
+    }
+
+    fun resetNewMessage() {
+        _newMessage.value = null
     }
 
     fun resetTokenExpired() {
@@ -142,6 +160,13 @@ class ChatViewModel(
         if (error.statusCode == HttpStatusCode.Unauthorized.value) {
             _tokenExpired.value = true
         }
+    }
+
+    private val messageQueue = mutableSetOf<Message>()
+
+    override fun queueMessage(message: Message) {
+        messageQueue.add(message)
+        getNextIncomingMessage()
     }
 
     override fun onNewMessage(message: Message) {

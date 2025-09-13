@@ -257,14 +257,16 @@ class ChatRepository(
     override fun onReceive(message: Message) {
         if (!isNewChat) {
             queueUpIncomingMessage(message) { topMessage ->
-                chatEventListener?.onNewMessage(topMessage)
+                chatEventListener?.queueMessage(topMessage)
             }
         } else {
             UserPreference.storeChatHistoryStatus(
                 chatInfo.chatReference, false)
             isNewChat = false
             queueUpIncomingMessage(message) { topMessage ->
-                chatEventListener?.onNewMessage(topMessage)
+                context.launch(Dispatchers.Default) {
+                    chatEventListener?.queueMessage(topMessage)
+                }
             }
         }
     }

@@ -58,6 +58,9 @@ class ConversationsViewModel(
     private val _newMessage = MutableLiveData<UIMessage?>()
     val newMessage: LiveData<UIMessage?> = _newMessage
 
+    private val _newMessages = MutableLiveData<List<UIMessage>?>()
+    val newMessages: LiveData<List<UIMessage>?> = _newMessages
+
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
@@ -73,41 +76,65 @@ class ConversationsViewModel(
 
     fun getNextIncomingMessage() {
         conversationsRepository.getNextMessageFromRecipient()?.let {
-            onNewMessage(it)
+            queueMessage(it)
         } ?: run {
-            _newMessage.value = null
+            _newMessages.value = messageQueue.toList().map {
+                it.toUIMessage(true)
+            }
         }
     }
 
-    fun rebuildConversations(conversations: List<DBConversation>, newMessage: UIMessage) {
+    fun rebuildConversations(conversations: List<DBConversation>, newMessages: List<UIMessage>) {
         val tempConversations = mutableListOf<DBConversation>()
+        val mutableMessages = mutableListOf<UIMessage>().apply {
+            addAll(newMessages)
+        }
         conversations.forEach { convo ->
-            if (newMessage.message.sender == convo.otherUser) {
+            val messages = mutableMessages.filter { it.message.sender == convo.otherUser }
+                .sortedBy { it.message.timestamp }
+            if (messages.isNotEmpty()) {
+                mutableMessages.removeAll(messages)
                 tempConversations.add(
                     DBConversation(
                         otherUser = convo.otherUser,
                         chatReference = convo.chatReference,
-                        lastMessage = newMessage.message.message,
-                        timestamp = newMessage.message.timestamp,
-                        unreadCount = convo.unreadCount + 1
+                        lastMessage = messages.last().message.message,
+                        timestamp = messages.last().message.timestamp,
+                        unreadCount = convo.unreadCount + messages.size
                     )
                 )
             } else {
                 tempConversations.add(convo)
             }
 
-            val isNewConversation = conversations.find {
-                it.chatReference == newMessage.message.chatReference
-            } == null
+            newConversations(mutableMessages).forEach { _, conversation ->
+                addNewConversation(conversation.other, conversation.unreadCount)
+            }
 
-            if (isNewConversation) {
-                addNewConversation(newMessage.message.receiver, 1)
+            _conversations.value = tempConversations
+        }
+    }
+
+    private fun newConversations(mutableMessages: MutableList<UIMessage>): MutableMap<String, Conversation> {
+        val chatMap = mutableMapOf<String, Conversation>()
+        mutableMessages.forEach {
+            if (chatMap[it.message.chatReference] == null) {
+                chatMap[it.message.chatReference] = Conversation(
+                    other = it.message.sender,
+                    chatReference = it.message.chatReference,
+                    lastMessage = it.message.message,
+                    timestamp = it.message.timestamp,
+                    unreadCount = 1
+                )
+            } else {
+                chatMap[it.message.chatReference]?.apply {
+                    unreadCount += 1
+                    lastMessage = it.message.message
+                    timestamp = it.message.timestamp
+                }
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
-            conversationsRepository.storeConversations(tempConversations)
-        }
-        _conversations.value = tempConversations
+        return chatMap
     }
 
     fun addNewConversation(other: String, messageCount: Int) {
@@ -121,6 +148,14 @@ class ConversationsViewModel(
                 }
             }
         }
+    }
+
+    fun resetNewMessages() {
+        _newMessages.value = null
+    }
+
+    fun resetNewMessage() {
+        _newMessage.value = null
     }
 
     fun resetAddConversation() {
@@ -174,6 +209,13 @@ class ConversationsViewModel(
 
     override fun onError(error: ChatServiceErrorResponse) {
 
+    }
+
+    private val messageQueue = mutableSetOf<Message>()
+
+    override fun queueMessage(message: Message) {
+        messageQueue.add(message)
+        getNextIncomingMessage()
     }
 
     override fun onNewMessage(message: Message) {

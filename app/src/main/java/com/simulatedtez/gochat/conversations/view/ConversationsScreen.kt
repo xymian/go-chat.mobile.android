@@ -93,6 +93,8 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val errorMessage by viewModel.errorMessage.observeAsState()
 
     val newMessage by viewModel.newMessage.observeAsState()
+    val newMessages by viewModel.newMessages.observeAsState()
+
     val isConnected by viewModel.isConnected.observeAsState()
 
     val tokenExpired by viewModel.tokenExpired.observeAsState()
@@ -174,8 +176,17 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 
     LaunchedEffect(newMessage) {
         newMessage?.let {
-            viewModel.rebuildConversations(conversations, it)
-            viewModel.getNextIncomingMessage()
+            viewModel.rebuildConversations(
+                conversationHistory, listOf(it)
+            )
+            viewModel.resetNewMessage()
+        }
+    }
+
+    LaunchedEffect(newMessages) {
+        newMessages?.let {
+            viewModel.rebuildConversations(conversationHistory, it)
+            viewModel.resetNewMessages()
         }
     }
 

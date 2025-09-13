@@ -28,6 +28,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
+import okhttp3.Dispatcher
 import java.time.LocalDateTime
 import java.util.LinkedList
 
@@ -134,6 +135,10 @@ class ConversationsRepository(
         conversationDB.insertConversations(conversations)
     }
 
+    suspend fun storeConversation(conversation: DBConversation) {
+        conversationDB.insertConversation(conversation)
+    }
+
     suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
         val params = StartNewChatParams(
             request = StartNewChatParams.Request(
@@ -200,21 +205,14 @@ class ConversationsRepository(
 
     override fun onReceive(message: Message) {
         if (!isNewChat(message.chatReference)) {
-            context.launch(Dispatchers.IO) {
-                val dbMessage = chatDb.getMessage(message.id)
-                if (dbMessage == null){
-                    queueUpIncomingMessage(message) { topMessage ->
-                        context.launch(Dispatchers.Main) {
-                            conversationEventListener?.onNewMessage(topMessage)
-                        }
-                    }
-                }
+            queueUpIncomingMessage(message) { topMessage ->
+                conversationEventListener?.queueMessage(topMessage)
             }
         } else {
             UserPreference.storeChatHistoryStatus(
                 message.chatReference, false)
             queueUpIncomingMessage(message) { topMessage ->
-                conversationEventListener?.onNewMessage(topMessage)
+                conversationEventListener?.queueMessage(topMessage)
             }
         }
     }

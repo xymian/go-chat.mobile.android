@@ -92,6 +92,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
     
     val newMessage by chatViewModel.newMessage.observeAsState()
+    val newMessages by chatViewModel.newMessages.observeAsState()
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sendMessageAttempt.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
@@ -218,11 +219,16 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     }
 
     LaunchedEffect(newMessage) {
-        newMessage.let {
-            it?.let {
-                messages.add(it)
-                chatViewModel.getNextIncomingMessage()
-            }
+        newMessage?.let {
+            messages.add(it)
+            chatViewModel.resetNewMessage()
+        }
+    }
+
+    LaunchedEffect(newMessages) {
+        newMessages?.let {
+            messages.addAll(it)
+            chatViewModel.resetNewMessages()
         }
     }
 
