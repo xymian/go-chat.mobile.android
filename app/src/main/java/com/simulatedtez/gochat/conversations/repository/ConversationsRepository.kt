@@ -51,7 +51,7 @@ class ConversationsRepository(
         .setExpectedReceivers(listOf())
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
-        .setMessageReturner(socketMessageLabeler(), null)
+        .setMessageReturner(socketMessageLabeler())
         .build(Message.serializer())
 
     private var rushedIncomingMessages: LinkedList<Message> = LinkedList()

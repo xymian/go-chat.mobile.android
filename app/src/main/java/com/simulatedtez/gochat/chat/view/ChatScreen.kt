@@ -80,9 +80,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
 
     val app = LocalContext.current.applicationContext as GoChatApplication
 
-    val chatViewModelProvider = remember { ChatViewModelProvider(
-        chatInfo = chatInfo, context
-    ) }
+    val chatViewModelProvider = remember {
+        ChatViewModelProvider(chatInfo = chatInfo, context)
+    }
     val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelProvider)
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -102,6 +102,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val listState = rememberLazyListState()
 
     val networkCallbacks = object: NetworkMonitor.Callbacks {
+
         override fun onAvailable() {
             if (hasFinishedInitialMessagesLoad) {
                 chatViewModel.connectAndSendPendingMessages()
@@ -156,10 +157,6 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 }
                 messages.clear()
                 messages.addAll(modifiedMessages)
-                if (messagesSent?.message?.seenTimestamp.isNullOrEmpty()) {
-                    //chatViewModel.markMessagesAsSeen(listOf(messagesSent!!.message))
-                }
-                chatViewModel.getNextOutgoingMessage()
             }
         }
     }
@@ -221,6 +218,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(newMessage) {
         newMessage?.let {
             messages.add(it)
+            chatViewModel.markMessagesAsSeen(listOf(it.message))
             chatViewModel.resetNewMessage()
         }
     }
@@ -228,6 +226,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(newMessages) {
         newMessages?.let {
             messages.addAll(it)
+            chatViewModel.markMessagesAsSeen(it.map { m -> m.message })
             chatViewModel.resetNewMessages()
         }
     }
@@ -244,10 +243,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
             val unseenMessages = visibleMessages.filterIndexed { index, m ->
                 m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
             }
-
-            /*chatViewModel.markMessagesAsSeen(unseenMessages.map {
+            chatViewModel.markMessagesAsSeen(unseenMessages.map {
                 it.message
-            })*/
+            })
         }
     }
 

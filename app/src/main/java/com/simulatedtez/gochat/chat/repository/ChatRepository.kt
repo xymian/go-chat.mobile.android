@@ -57,11 +57,7 @@ class ChatRepository(
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setStorageInterface(chatDb)
         .setChatServiceListener(this)
-        .setMessageReturner(socketMessageLabeler(), listener = object: SocketMessageReturnerListener<Message> {
-            override fun onReturn(message: Message) {
-                chatEventListener?.onMessageSent(message)
-            }
-        })
+        .setMessageReturner(socketMessageLabeler())
         .build(Message.serializer())
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
@@ -224,7 +220,6 @@ class ChatRepository(
         context.launch(Dispatchers.IO) {
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
-
         queueUpOutgoingMessage(message) { topMessage ->
             chatEventListener?.onMessageSent(topMessage)
         }
@@ -257,14 +252,17 @@ class ChatRepository(
     override fun onReceive(message: Message) {
         if (!isNewChat) {
             queueUpIncomingMessage(message) { topMessage ->
-                chatEventListener?.queueMessage(topMessage)
+                if (message.seenTimestamp.isNullOrEmpty()) {
+                    queueUpIncomingMessage(message) { topMessage ->
+                        chatEventListener?.queueMessage(topMessage)
+                    }
+                }
             }
         } else {
-            UserPreference.storeChatHistoryStatus(
-                chatInfo.chatReference, false)
+            UserPreference.storeChatHistoryStatus(chatInfo.chatReference, false)
             isNewChat = false
-            queueUpIncomingMessage(message) { topMessage ->
-                context.launch(Dispatchers.Default) {
+            if (message.seenTimestamp.isNullOrEmpty()) {
+                queueUpIncomingMessage(message) { topMessage ->
                     chatEventListener?.queueMessage(topMessage)
                 }
             }
