@@ -16,7 +16,7 @@ open class Message(
     @SerialName("messageTimestamp") override var timestamp: String,
     @SerialName("chatReference") open val chatReference: String,
     @SerialName("ack") open val ack: Boolean? = null,
-    @SerialName("deliveredTimestamp") open val deliveredTimestamp: String? = null,
+    @SerialName("deliveredTimestamp") open var deliveredTimestamp: String? = null,
     @SerialName("seenTimestamp") open var seenTimestamp: String? = null
 ): ComparableMessage()
 

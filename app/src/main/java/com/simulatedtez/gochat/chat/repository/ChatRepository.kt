@@ -3,7 +3,6 @@ package com.simulatedtez.gochat.chat.repository
 import ChatServiceErrorResponse
 import ChatServiceManager
 import SocketMessageReturner
-import SocketMessageReturnerListener
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.DBMessage
@@ -109,8 +108,12 @@ class ChatRepository(
     fun connectAndSendPendingMessages() {
         context.launch(Dispatchers.IO) {
             val pendingMessages = mutableListOf<DBMessage>()
-            pendingMessages.addAll(chatDb.getUndeliveredMessages(chatInfo.username, chatInfo.chatReference))
-            pendingMessages.addAll(chatDb.getPendingMessages(chatInfo.chatReference))
+            pendingMessages.addAll(chatDb.getUndeliveredMessages(
+                chatInfo.username, chatInfo.chatReference)
+            )
+            pendingMessages.addAll(
+                chatDb.getPendingMessages(chatInfo.chatReference)
+            )
             context.launch(Dispatchers.Main) {
                 createNewChatRoom {
                     chatService.connectAndSend(pendingMessages.toMessages())
@@ -249,7 +252,19 @@ class ChatRepository(
         }
     }
 
+    private var lastMessagesFromRecipient = mutableListOf<Message>()
+
     override fun onReceive(message: Message) {
+        val lastMessageOfTheSameId = lastMessagesFromRecipient.find { it.id == message.id }
+        if (lastMessageOfTheSameId == null) {
+            message.deliveredTimestamp = LocalDateTime.now().toISOString()
+            lastMessagesFromRecipient.add(message)
+        } else {
+            if (message.deliveredTimestamp.isNullOrEmpty()) {
+                message.deliveredTimestamp = lastMessageOfTheSameId.deliveredTimestamp
+                lastMessagesFromRecipient.remove(lastMessageOfTheSameId)
+            }
+        }
         if (!isNewChat) {
             queueUpIncomingMessage(message) { topMessage ->
                 if (message.seenTimestamp.isNullOrEmpty()) {
