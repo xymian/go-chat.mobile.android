@@ -34,8 +34,8 @@ class ChatViewModel(
     private val chatRepo: ChatRepository
 ): ViewModel(), ChatEventListener {
 
-    private val _messagesSent = MutableLiveData<UIMessage?>()
-    val messagesSent: LiveData<UIMessage?> = _messagesSent
+    private val _messagesSent = MutableLiveData<List<UIMessage>?>()
+    val messagesSent: LiveData<List<UIMessage>?> = _messagesSent
 
     private val _newMessage = MutableLiveData<UIMessage?>()
     val newMessage: LiveData<UIMessage?> = _newMessage
@@ -57,8 +57,9 @@ class ChatViewModel(
 
     fun getNextIncomingMessage() {
         chatRepo.getNextMessageFromRecipient()?.let {
-            queueMessage(it)
+            queueIncomingMessage(it)
         } ?: run {
+            updateConversationLastMessage(messageQueue.last())
             _newMessages.value = messageQueue.toList().map {
                 it.toUIMessage(true)
             }
@@ -68,9 +69,15 @@ class ChatViewModel(
 
     fun getNextOutgoingMessage() {
         chatRepo.getNextOutgoingMessage()?.let {
-            onMessageSent(it)
+            queueOutgoingMessage(it)
         } ?: run {
-            _messagesSent.value = null
+            outgoingMessageQueue.lastOrNull()?.let {
+                updateConversationLastMessage(it)
+                _messagesSent.value = outgoingMessageQueue.toList().map { msg ->
+                    msg.toUIMessage(true)
+                }
+                outgoingMessageQueue.clear()
+            }
         }
     }
 
@@ -100,6 +107,7 @@ class ChatViewModel(
             chatReference = chatInfo.chatReference,
             ack = false
         )
+
         _sendMessageAttempt.value = message.toUIMessage(false)
         chatRepo.sendMessage(message)
     }
@@ -107,6 +115,12 @@ class ChatViewModel(
     fun loadMessages() {
         viewModelScope.launch(Dispatchers.IO) {
             _pagedMessages.postValue(chatRepo.loadNextPageMessages())
+        }
+    }
+
+    private fun updateConversationLastMessage(message: Message) {
+        viewModelScope.launch(Dispatchers.IO) {
+            chatRepo.updateConversationLastMessage(message)
         }
     }
 
@@ -133,8 +147,7 @@ class ChatViewModel(
     }
 
     override fun onMessageSent(message: Message) {
-        val uiMessage = message.toUIMessage(true)
-        _messagesSent.value = uiMessage
+
     }
 
     override fun onClose(code: Int, reason: String) {
@@ -163,8 +176,14 @@ class ChatViewModel(
     }
 
     private val messageQueue = mutableSetOf<Message>()
+    private val outgoingMessageQueue = mutableSetOf<Message>()
 
-    override fun queueMessage(message: Message) {
+    override fun queueOutgoingMessage(message: Message) {
+        outgoingMessageQueue.add(message)
+        getNextOutgoingMessage()
+    }
+
+    override fun queueIncomingMessage(message: Message) {
         messageQueue.add(message)
         getNextIncomingMessage()
     }

@@ -74,8 +74,8 @@ class ChatRepository(
         else null
     }
 
-    private fun socketMessageLabeler(): SocketMessageReturner<Message> =
-        object : SocketMessageReturner<Message> {
+    private fun socketMessageLabeler(): SocketMessageReturner<Message> {
+        return object : SocketMessageReturner<Message> {
             override fun returnMessage(
                 message: Message
             ): Message {
@@ -96,6 +96,7 @@ class ChatRepository(
                 return message.sender != chatInfo.username && message.deliveredTimestamp == null
             }
         }
+    }
 
     fun connectToChatService() {
         context.launch(Dispatchers.IO) {
@@ -144,8 +145,13 @@ class ChatRepository(
     fun sendMessage(message: Message) {
         context.launch(Dispatchers.IO) {
             chatDb.store(message)
+            updateConversationLastMessage(message)
         }
         chatService.sendMessage(message)
+    }
+
+    suspend fun updateConversationLastMessage(message: Message) {
+        conversationDB.updateConversationLastMessage(message)
     }
 
     suspend fun markConversationAsOpened() {
@@ -224,7 +230,7 @@ class ChatRepository(
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
         queueUpOutgoingMessage(message) { topMessage ->
-            chatEventListener?.onMessageSent(topMessage)
+            chatEventListener?.queueOutgoingMessage(topMessage)
         }
     }
 
@@ -269,7 +275,7 @@ class ChatRepository(
             queueUpIncomingMessage(message) { topMessage ->
                 if (message.seenTimestamp.isNullOrEmpty()) {
                     queueUpIncomingMessage(message) { topMessage ->
-                        chatEventListener?.queueMessage(topMessage)
+                        chatEventListener?.queueIncomingMessage(topMessage)
                     }
                 }
             }
@@ -278,7 +284,7 @@ class ChatRepository(
             isNewChat = false
             if (message.seenTimestamp.isNullOrEmpty()) {
                 queueUpIncomingMessage(message) { topMessage ->
-                    chatEventListener?.queueMessage(topMessage)
+                    chatEventListener?.queueIncomingMessage(topMessage)
                 }
             }
         }

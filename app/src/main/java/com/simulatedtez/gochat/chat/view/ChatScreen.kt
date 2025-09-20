@@ -148,15 +148,17 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(messagesSent) {
         messagesSent.let {
             it?.let {
-                val modifiedMessages = messages.toMutableList()
-                val messageIndex = modifiedMessages.indexOfFirst {
-                        m -> it.message.id ==  m.message.id
+                it.forEach { msg ->
+                    val modifiedMessages = messages.toMutableList()
+                    val messageIndex = modifiedMessages.indexOfFirst {
+                            m -> msg.message.id ==  m.message.id
+                    }
+                    if (messageIndex != -1) {
+                        modifiedMessages[messageIndex] = msg
+                    }
+                    messages.clear()
+                    messages.addAll(modifiedMessages)
                 }
-                if (messageIndex != -1) {
-                    modifiedMessages[messageIndex] = it
-                }
-                messages.clear()
-                messages.addAll(modifiedMessages)
             }
         }
     }

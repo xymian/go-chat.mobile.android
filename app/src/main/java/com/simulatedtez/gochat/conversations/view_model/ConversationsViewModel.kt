@@ -9,7 +9,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
-import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -30,8 +29,6 @@ import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 
@@ -74,12 +71,22 @@ class ConversationsViewModel(
         }
     }
 
+    private fun updateConversationLastMessage(message: Message) {
+        viewModelScope.launch(Dispatchers.IO) {
+            conversationsRepository.updateConversationLastMessage(message)
+        }
+    }
+
     fun getNextIncomingMessage() {
         conversationsRepository.getNextMessageFromRecipient()?.let {
-            queueMessage(it)
+            queueIncomingMessage(it)
         } ?: run {
-            _newMessages.value = messageQueue.toList().map {
-                it.toUIMessage(true)
+            messageQueue.lastOrNull()?.let {
+                updateConversationLastMessage(it)
+                _newMessages.value = messageQueue.toList().map { msg ->
+                    msg.toUIMessage(true)
+                }
+                messageQueue.clear()
             }
         }
     }
@@ -213,7 +220,7 @@ class ConversationsViewModel(
 
     private val messageQueue = mutableSetOf<Message>()
 
-    override fun queueMessage(message: Message) {
+    override fun queueIncomingMessage(message: Message) {
         messageQueue.add(message)
         getNextIncomingMessage()
     }

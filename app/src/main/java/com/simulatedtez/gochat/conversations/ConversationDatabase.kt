@@ -8,6 +8,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.database.AppDatabase
 
@@ -30,6 +31,12 @@ class ConversationDatabase private constructor(private val conversationsDao: Con
 
     suspend fun getConversations(): List<DBConversation> {
         return conversationsDao.getAll()
+    }
+
+    suspend fun updateConversationLastMessage(message: Message) {
+        conversationsDao.updateConversationLastMessage(
+            message.chatReference, message.message, message.timestamp
+        )
     }
 
     suspend fun updateUnreadCountToZero(chatRef: String) {
@@ -66,6 +73,9 @@ data class DBConversation(
 interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE chatReference = :chatRef")
     suspend fun getByChatReference(chatRef: String): DBConversation
+
+    @Query("UPDATE conversations SET lastMessage = :message, timestamp = :timestamp WHERE chatReference = :chatRef")
+    suspend fun updateConversationLastMessage(chatRef: String, message: String, timestamp: String)
 
     @Query("UPDATE conversations SET unreadCount = 0 WHERE chatReference =:chatRef")
     suspend fun updateUnreadCountToZero(chatRef: String)
