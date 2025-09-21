@@ -209,13 +209,17 @@ class ConversationsRepository(
     override fun onReceive(message: Message) {
         if (!isNewChat(message.chatReference)) {
             queueUpIncomingMessage(message) { topMessage ->
-                conversationEventListener?.queueIncomingMessage(topMessage)
+                context.launch(Dispatchers.Default) {
+                    conversationEventListener?.queueIncomingMessage(topMessage)
+                }
             }
         } else {
             UserPreference.storeChatHistoryStatus(
                 message.chatReference, false)
             queueUpIncomingMessage(message) { topMessage ->
-                conversationEventListener?.queueIncomingMessage(topMessage)
+                context.launch(Dispatchers.Default) {
+                    conversationEventListener?.queueIncomingMessage(topMessage)
+                }
             }
         }
     }

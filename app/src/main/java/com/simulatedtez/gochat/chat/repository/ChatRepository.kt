@@ -230,7 +230,9 @@ class ChatRepository(
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
         }
         queueUpOutgoingMessage(message) { topMessage ->
-            chatEventListener?.queueOutgoingMessage(topMessage)
+            context.launch(Dispatchers.Default) {
+                chatEventListener?.queueOutgoingMessage(topMessage)
+            }
         }
     }
 
@@ -273,8 +275,8 @@ class ChatRepository(
         }
         if (!isNewChat) {
             queueUpIncomingMessage(message) { topMessage ->
-                if (message.seenTimestamp.isNullOrEmpty()) {
-                    queueUpIncomingMessage(message) { topMessage ->
+                queueUpIncomingMessage(message) { topMessage ->
+                    context.launch(Dispatchers.Default) {
                         chatEventListener?.queueIncomingMessage(topMessage)
                     }
                 }
@@ -284,7 +286,9 @@ class ChatRepository(
             isNewChat = false
             if (message.seenTimestamp.isNullOrEmpty()) {
                 queueUpIncomingMessage(message) { topMessage ->
-                    chatEventListener?.queueIncomingMessage(topMessage)
+                    context.launch(Dispatchers.Default) {
+                        chatEventListener?.queueIncomingMessage(topMessage)
+                    }
                 }
             }
         }

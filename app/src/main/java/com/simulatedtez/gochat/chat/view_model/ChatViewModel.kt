@@ -55,27 +55,31 @@ class ChatViewModel(
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
-    fun getNextIncomingMessage() {
+    suspend fun getNextIncomingMessage() {
         chatRepo.getNextMessageFromRecipient()?.let {
             queueIncomingMessage(it)
         } ?: run {
             updateConversationLastMessage(messageQueue.last())
-            _newMessages.value = messageQueue.toList().map {
-                it.toUIMessage(true)
-            }
+            _newMessages.postValue(
+                messageQueue.toList().map {
+                    it.toUIMessage(true)
+                }
+            )
             messageQueue.clear()
         }
     }
 
-    fun getNextOutgoingMessage() {
+    suspend fun getNextOutgoingMessage() {
         chatRepo.getNextOutgoingMessage()?.let {
             queueOutgoingMessage(it)
         } ?: run {
             outgoingMessageQueue.lastOrNull()?.let {
                 updateConversationLastMessage(it)
-                _messagesSent.value = outgoingMessageQueue.toList().map { msg ->
-                    msg.toUIMessage(true)
-                }
+                _messagesSent.postValue(
+                    outgoingMessageQueue.toList().map { msg ->
+                        msg.toUIMessage(true)
+                    }
+                )
                 outgoingMessageQueue.clear()
             }
         }
@@ -178,12 +182,12 @@ class ChatViewModel(
     private val messageQueue = mutableSetOf<Message>()
     private val outgoingMessageQueue = mutableSetOf<Message>()
 
-    override fun queueOutgoingMessage(message: Message) {
+    override suspend fun queueOutgoingMessage(message: Message) {
         outgoingMessageQueue.add(message)
         getNextOutgoingMessage()
     }
 
-    override fun queueIncomingMessage(message: Message) {
+    override suspend fun queueIncomingMessage(message: Message) {
         messageQueue.add(message)
         getNextIncomingMessage()
     }

@@ -5,7 +5,7 @@ import com.simulatedtez.gochat.chat.remote.models.Message
 import okhttp3.Response
 
 interface ChatEventListener: SocketConnection, MessageSender, MessageReceiver {
-    fun queueOutgoingMessage(message: Message)
+    suspend fun queueOutgoingMessage(message: Message)
 }
 
 interface SocketConnection {
@@ -21,6 +21,6 @@ interface MessageSender {
 }
 
 interface MessageReceiver {
-    fun queueIncomingMessage(message: Message)
+    suspend fun queueIncomingMessage(message: Message)
     fun onNewMessage(message: Message)
 }

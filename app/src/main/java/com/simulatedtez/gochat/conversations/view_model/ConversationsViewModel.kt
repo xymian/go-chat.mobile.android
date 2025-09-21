@@ -51,7 +51,6 @@ class ConversationsViewModel(
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> = _errorMessage
 
-
     private val _newMessage = MutableLiveData<UIMessage?>()
     val newMessage: LiveData<UIMessage?> = _newMessage
 
@@ -77,15 +76,17 @@ class ConversationsViewModel(
         }
     }
 
-    fun getNextIncomingMessage() {
+    suspend fun getNextIncomingMessage() {
         conversationsRepository.getNextMessageFromRecipient()?.let {
             queueIncomingMessage(it)
         } ?: run {
             messageQueue.lastOrNull()?.let {
                 updateConversationLastMessage(it)
-                _newMessages.value = messageQueue.toList().map { msg ->
-                    msg.toUIMessage(true)
-                }
+                _newMessages.postValue(
+                    messageQueue.toList().map { msg ->
+                        msg.toUIMessage(true)
+                    }
+                )
                 messageQueue.clear()
             }
         }
@@ -220,7 +221,7 @@ class ConversationsViewModel(
 
     private val messageQueue = mutableSetOf<Message>()
 
-    override fun queueIncomingMessage(message: Message) {
+    override suspend fun queueIncomingMessage(message: Message) {
         messageQueue.add(message)
         getNextIncomingMessage()
     }
