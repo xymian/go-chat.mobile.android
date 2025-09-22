@@ -231,7 +231,7 @@ class ChatRepository(
         }
         queueUpOutgoingMessage(message) { topMessage ->
             context.launch(Dispatchers.Default) {
-                chatEventListener?.queueOutgoingMessage(topMessage)
+                chatEventListener?.onMessageSent(topMessage)
             }
         }
     }
@@ -274,21 +274,17 @@ class ChatRepository(
             }
         }
         if (!isNewChat) {
-            queueUpIncomingMessage(message) { topMessage ->
-                queueUpIncomingMessage(message) { topMessage ->
-                    context.launch(Dispatchers.Default) {
-                        chatEventListener?.queueIncomingMessage(topMessage)
-                    }
-                }
+            context.launch(Dispatchers.IO) {
+                updateConversationLastMessage(message)
+                chatEventListener?.onReceive(message)
             }
         } else {
             UserPreference.storeChatHistoryStatus(chatInfo.chatReference, false)
             isNewChat = false
             if (message.seenTimestamp.isNullOrEmpty()) {
-                queueUpIncomingMessage(message) { topMessage ->
-                    context.launch(Dispatchers.Default) {
-                        chatEventListener?.queueIncomingMessage(topMessage)
-                    }
+                context.launch(Dispatchers.IO) {
+                    updateConversationLastMessage(message)
+                    chatEventListener?.onReceive(message)
                 }
             }
         }

@@ -24,6 +24,8 @@ import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 import java.time.LocalDateTime
@@ -34,14 +36,11 @@ class ChatViewModel(
     private val chatRepo: ChatRepository
 ): ViewModel(), ChatEventListener {
 
-    private val _messagesSent = MutableLiveData<List<UIMessage>?>()
-    val messagesSent: LiveData<List<UIMessage>?> = _messagesSent
+    private val _messagesSent = Channel<UIMessage>()
+    val messagesSent = _messagesSent.receiveAsFlow()
 
-    private val _newMessage = MutableLiveData<UIMessage?>()
-    val newMessage: LiveData<UIMessage?> = _newMessage
-
-    private val _newMessages = MutableLiveData<List<UIMessage>?>()
-    val newMessages: LiveData<List<UIMessage>?> = _newMessages
+    private val _newMessage = Channel<UIMessage>()
+    val newMessage = _newMessage.receiveAsFlow()
 
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
@@ -55,46 +54,8 @@ class ChatViewModel(
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
-    suspend fun getNextIncomingMessage() {
-        chatRepo.getNextMessageFromRecipient()?.let {
-            queueIncomingMessage(it)
-        } ?: run {
-            updateConversationLastMessage(messageQueue.last())
-            _newMessages.postValue(
-                messageQueue.toList().map {
-                    it.toUIMessage(true)
-                }
-            )
-            messageQueue.clear()
-        }
-    }
-
-    suspend fun getNextOutgoingMessage() {
-        chatRepo.getNextOutgoingMessage()?.let {
-            queueOutgoingMessage(it)
-        } ?: run {
-            outgoingMessageQueue.lastOrNull()?.let {
-                updateConversationLastMessage(it)
-                _messagesSent.postValue(
-                    outgoingMessageQueue.toList().map { msg ->
-                        msg.toUIMessage(true)
-                    }
-                )
-                outgoingMessageQueue.clear()
-            }
-        }
-    }
-
     fun resetSendAttempt() {
         _sendMessageAttempt.value = null
-    }
-
-    fun resetNewMessages() {
-        _newMessages.value = null
-    }
-
-    fun resetNewMessage() {
-        _newMessage.value = null
     }
 
     fun resetTokenExpired() {
@@ -122,12 +83,6 @@ class ChatViewModel(
         }
     }
 
-    private fun updateConversationLastMessage(message: Message) {
-        viewModelScope.launch(Dispatchers.IO) {
-            chatRepo.updateConversationLastMessage(message)
-        }
-    }
-
     fun markConversationAsOpened() {
         viewModelScope.launch(Dispatchers.IO) {
             chatRepo.markConversationAsOpened()
@@ -138,20 +93,12 @@ class ChatViewModel(
         chatRepo.markMessagesAsSeen(messages)
     }
 
-    fun connectToChatService() {
-        chatRepo.connectToChatService()
-    }
-
     fun connectAndSendPendingMessages() {
         chatRepo.connectAndSendPendingMessages()
     }
 
     fun exitChat() {
         chatRepo.killChatService()
-    }
-
-    override fun onMessageSent(message: Message) {
-
     }
 
     override fun onClose(code: Int, reason: String) {
@@ -179,22 +126,12 @@ class ChatViewModel(
         }
     }
 
-    private val messageQueue = mutableSetOf<Message>()
-    private val outgoingMessageQueue = mutableSetOf<Message>()
-
-    override suspend fun queueOutgoingMessage(message: Message) {
-        outgoingMessageQueue.add(message)
-        getNextOutgoingMessage()
+    override suspend fun onMessageSent(message: Message) {
+        _messagesSent.send(message.toUIMessage(true))
     }
 
-    override suspend fun queueIncomingMessage(message: Message) {
-        messageQueue.add(message)
-        getNextIncomingMessage()
-    }
-
-    override fun onNewMessage(message: Message) {
-        val uiMessage = message.toUIMessage(true)
-        _newMessage.value = uiMessage
+    override suspend fun onReceive(message: Message) {
+        _newMessage.send(message.toUIMessage(true))
     }
 
     override fun onCleared() {

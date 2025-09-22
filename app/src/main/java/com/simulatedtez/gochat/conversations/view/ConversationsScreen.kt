@@ -42,6 +42,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,7 @@ import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
 import io.ktor.websocket.Frame
+import kotlinx.coroutines.coroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,8 +94,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val conversationHistory by viewModel.conversations.observeAsState(listOf())
     val errorMessage by viewModel.errorMessage.observeAsState()
 
-    val newMessage by viewModel.newMessage.observeAsState()
-    val newMessages by viewModel.newMessages.observeAsState()
+    val newMessages by viewModel.newMessage.collectAsState(null)
 
     val isConnected by viewModel.isConnected.observeAsState()
 
@@ -174,19 +175,9 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
         }
     }
 
-    LaunchedEffect(newMessage) {
-        newMessage?.let {
-            viewModel.rebuildConversations(
-                conversationHistory, listOf(it)
-            )
-            viewModel.resetNewMessage()
-        }
-    }
-
     LaunchedEffect(newMessages) {
         newMessages?.let {
-            viewModel.rebuildConversations(conversationHistory, it)
-            viewModel.resetNewMessages()
+
         }
     }
 

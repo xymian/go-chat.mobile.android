@@ -53,13 +53,6 @@ class ConversationsRepository(
         .setMessageReturner(socketMessageLabeler())
         .build(Message.serializer())
 
-    private var rushedIncomingMessages: LinkedList<Message> = LinkedList()
-
-    fun getNextMessageFromRecipient(): Message? {
-        return if (rushedIncomingMessages.isNotEmpty()) rushedIncomingMessages.remove()
-        else null
-    }
-
     private fun socketMessageLabeler(): SocketMessageReturner<Message> {
         return object : SocketMessageReturner<Message> {
             override fun returnMessage(
@@ -208,18 +201,14 @@ class ConversationsRepository(
 
     override fun onReceive(message: Message) {
         if (!isNewChat(message.chatReference)) {
-            queueUpIncomingMessage(message) { topMessage ->
-                context.launch(Dispatchers.Default) {
-                    conversationEventListener?.queueIncomingMessage(topMessage)
-                }
+            context.launch(Dispatchers.IO) {
+                conversationEventListener?.onReceive(message)
             }
         } else {
             UserPreference.storeChatHistoryStatus(
                 message.chatReference, false)
-            queueUpIncomingMessage(message) { topMessage ->
-                context.launch(Dispatchers.Default) {
-                    conversationEventListener?.queueIncomingMessage(topMessage)
-                }
+            context.launch(Dispatchers.IO) {
+                conversationEventListener?.onReceive(message)
             }
         }
     }
@@ -228,30 +217,6 @@ class ConversationsRepository(
         val dbMessage = message.toDBMessage()
         context.launch(Dispatchers.IO) {
             chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
-        }
-    }
-
-    private fun queueUpIncomingMessage(
-        message: Message, onQueueEmpty: (topMessage: Message) -> Unit
-    ) {
-        var index = -1
-        rushedIncomingMessages.filterIndexed { i, msg ->
-            val isTheSame = msg.id == message.id
-            if (isTheSame) {
-                index = i
-                true
-            } else {
-                false
-            }
-        }
-        if (index > -1) {
-            rushedIncomingMessages[index] = message
-        } else {
-            rushedIncomingMessages.add(message)
-        }
-        val topMessage = rushedIncomingMessages.remove()
-        if (rushedIncomingMessages.isEmpty()) {
-            onQueueEmpty(topMessage)
         }
     }
 

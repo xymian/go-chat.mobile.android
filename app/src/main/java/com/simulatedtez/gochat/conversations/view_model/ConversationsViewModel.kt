@@ -29,6 +29,8 @@ import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 
@@ -51,14 +53,13 @@ class ConversationsViewModel(
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> = _errorMessage
 
-    private val _newMessage = MutableLiveData<UIMessage?>()
-    val newMessage: LiveData<UIMessage?> = _newMessage
-
-    private val _newMessages = MutableLiveData<List<UIMessage>?>()
-    val newMessages: LiveData<List<UIMessage>?> = _newMessages
+    private val _newMessage = Channel<UIMessage>(Channel.UNLIMITED)
+    val newMessage = _newMessage.receiveAsFlow()
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
+
+    private var holdingConversations = mutableListOf<DBConversation>()
 
     fun resetTokenExpired() {
         _tokenExpired.value = false
@@ -66,59 +67,46 @@ class ConversationsViewModel(
 
     fun fetchConversations() {
         viewModelScope.launch(Dispatchers.IO) {
-            _conversations.postValue(conversationsRepository.getConversations())
+            holdingConversations = conversationsRepository.getConversations().toMutableList()
+            _conversations.postValue(holdingConversations)
         }
     }
 
-    private fun updateConversationLastMessage(message: Message) {
-        viewModelScope.launch(Dispatchers.IO) {
-            conversationsRepository.updateConversationLastMessage(message)
-        }
-    }
-
-    suspend fun getNextIncomingMessage() {
-        conversationsRepository.getNextMessageFromRecipient()?.let {
-            queueIncomingMessage(it)
-        } ?: run {
-            messageQueue.lastOrNull()?.let {
-                updateConversationLastMessage(it)
-                _newMessages.postValue(
-                    messageQueue.toList().map { msg ->
-                        msg.toUIMessage(true)
-                    }
-                )
-                messageQueue.clear()
-            }
-        }
-    }
-
-    fun rebuildConversations(conversations: List<DBConversation>, newMessages: List<UIMessage>) {
+    fun rebuildConversations(newMessages: List<UIMessage>) {
         val tempConversations = mutableListOf<DBConversation>()
         val mutableMessages = mutableListOf<UIMessage>().apply {
             addAll(newMessages)
         }
-        conversations.forEach { convo ->
-            val messages = mutableMessages.filter { it.message.sender == convo.otherUser }
-                .sortedBy { it.message.timestamp }
+        val updatedConversations = mutableListOf<DBConversation>()
+        holdingConversations.forEach { convo ->
+            val messages = mutableMessages.filter {
+                it.message.chatReference == convo.chatReference
+            }.sortedBy { it.message.timestamp }
             if (messages.isNotEmpty()) {
                 mutableMessages.removeAll(messages)
-                tempConversations.add(
-                    DBConversation(
-                        otherUser = convo.otherUser,
-                        chatReference = convo.chatReference,
-                        lastMessage = messages.last().message.message,
-                        timestamp = messages.last().message.timestamp,
-                        unreadCount = convo.unreadCount + messages.size
-                    )
+                val conversation = DBConversation(
+                    otherUser = convo.otherUser,
+                    chatReference = convo.chatReference,
+                    lastMessage = messages.last().message.message,
+                    timestamp = messages.last().message.timestamp,
+                    unreadCount = convo.unreadCount + messages.size
                 )
+                tempConversations.add(conversation)
+                updatedConversations.add(conversation)
             } else {
                 tempConversations.add(convo)
+            }
+
+            if (updatedConversations.isNotEmpty()) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    conversationsRepository.storeConversations(updatedConversations)
+                }
             }
 
             newConversations(mutableMessages).forEach { _, conversation ->
                 addNewConversation(conversation.other, conversation.unreadCount)
             }
-
+            holdingConversations = tempConversations
             _conversations.value = tempConversations
         }
     }
@@ -158,20 +146,8 @@ class ConversationsViewModel(
         }
     }
 
-    fun resetNewMessages() {
-        _newMessages.value = null
-    }
-
-    fun resetNewMessage() {
-        _newMessage.value = null
-    }
-
     fun resetAddConversation() {
         _newConversation.value = null
-    }
-
-    fun killService() {
-        conversationsRepository.killService()
     }
 
     override fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>) {
@@ -182,10 +158,12 @@ class ConversationsViewModel(
     }
 
     override fun onNewChatAdded(chat: NewChatResponse) {
-        _newConversation.value = DBConversation(
+        val newConversation = DBConversation(
             otherUser = chat.other,
             chatReference = chat.chatReference
         )
+        holdingConversations.add(newConversation)
+        _newConversation.value = newConversation
         _waiting.value = false
     }
 
@@ -219,16 +197,10 @@ class ConversationsViewModel(
 
     }
 
-    private val messageQueue = mutableSetOf<Message>()
-
-    override suspend fun queueIncomingMessage(message: Message) {
-        messageQueue.add(message)
-        getNextIncomingMessage()
-    }
-
-    override fun onNewMessage(message: Message) {
-        val uiMessage = message.toUIMessage(true)
-        _newMessage.value = uiMessage
+    override suspend fun onReceive(message: Message) {
+        viewModelScope.launch(Dispatchers.Main) {
+            rebuildConversations(listOf(message.toUIMessage(true)))
+        }
     }
 
     override fun onCleared() {

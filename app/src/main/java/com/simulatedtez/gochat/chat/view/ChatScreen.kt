@@ -91,13 +91,13 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
     
-    val newMessage by chatViewModel.newMessage.observeAsState()
-    val newMessages by chatViewModel.newMessages.observeAsState()
+    val newMessage by chatViewModel.newMessage.collectAsState(null)
+    val newMessages by chatViewModel.newMessage.collectAsState(null)
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sendMessageAttempt.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
-    val messagesSent by chatViewModel.messagesSent.observeAsState()
+    val messagesSent by chatViewModel.messagesSent.collectAsState(null)
 
     val listState = rememberLazyListState()
 
@@ -146,20 +146,16 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     }
 
     LaunchedEffect(messagesSent) {
-        messagesSent.let {
-            it?.let {
-                it.forEach { msg ->
-                    val modifiedMessages = messages.toMutableList()
-                    val messageIndex = modifiedMessages.indexOfFirst {
-                            m -> msg.message.id ==  m.message.id
-                    }
-                    if (messageIndex != -1) {
-                        modifiedMessages[messageIndex] = msg
-                    }
-                    messages.clear()
-                    messages.addAll(modifiedMessages)
-                }
+        messagesSent?.let { msg ->
+            val modifiedMessages = messages.toMutableList()
+            val messageIndex = modifiedMessages.indexOfFirst {
+                    m -> msg.message.id ==  m.message.id
             }
+            if (messageIndex != -1) {
+                modifiedMessages[messageIndex] = msg
+            }
+            messages.clear()
+            messages.addAll(modifiedMessages)
         }
     }
 
@@ -221,15 +217,13 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         newMessage?.let {
             messages.add(it)
             chatViewModel.markMessagesAsSeen(listOf(it.message))
-            chatViewModel.resetNewMessage()
         }
     }
 
     LaunchedEffect(newMessages) {
         newMessages?.let {
-            messages.addAll(it)
-            chatViewModel.markMessagesAsSeen(it.map { m -> m.message })
-            chatViewModel.resetNewMessages()
+            messages.add(it)
+            chatViewModel.markMessagesAsSeen(listOf(it.message))
         }
     }
 
