@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.interfaces.ChatEventListener
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
@@ -54,6 +55,11 @@ class ChatViewModel(
     private val _tokenExpired = MutableLiveData<Boolean>()
     val tokenExpired: LiveData<Boolean> = _tokenExpired
 
+    private val _recipientStatus = MutableLiveData<PresenceStatus>()
+    val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
+
+    private var hasPostedPresence = false
+
     fun resetSendAttempt() {
         _sendMessageAttempt.value = null
     }
@@ -75,6 +81,22 @@ class ChatViewModel(
 
         _sendMessageAttempt.value = message.toUIMessage(false)
         chatRepo.sendMessage(message)
+    }
+
+    fun postPresence(presenceStatus: PresenceStatus) {
+        hasPostedPresence = false
+        val message = Message(
+            id = UUID.randomUUID().toString(),
+            message = "",
+            sender = chatInfo.username,
+            receiver = chatInfo.recipientsUsernames[0],
+            timestamp = LocalDateTime.now().toISOString(),
+            chatReference = chatInfo.chatReference,
+            ack = false,
+            presenceStatus = presenceStatus.name
+        )
+
+        chatRepo.postPresence(message)
     }
 
     fun loadMessages() {
@@ -105,6 +127,10 @@ class ChatViewModel(
         _isConnected.value = false
     }
 
+    override fun onPresencePosted() {
+        hasPostedPresence = true
+    }
+
     override fun onSend(message: Message) {
         Napier.d("message: ${message.message} sent to ${chatInfo.recipientsUsernames[0]}")
     }
@@ -124,6 +150,41 @@ class ChatViewModel(
         if (error.statusCode == HttpStatusCode.Unauthorized.value) {
             _tokenExpired.value = true
         }
+    }
+
+    override fun onReceiveRecipientActivityStatusMessage(message: Message) {
+        if (!hasPostedPresence) {
+            val message = Message(
+                id = UUID.randomUUID().toString(),
+                message = "",
+                sender = message.receiver,
+                receiver = message.sender,
+                timestamp = LocalDateTime.now().toISOString(),
+                chatReference = chatInfo.chatReference,
+                ack = false,
+                presenceStatus = "ONLINE"
+            )
+
+            chatRepo.postPresence(message)
+        }
+
+        when (message.presenceStatus) {
+            PresenceStatus.ONLINE.name -> {
+                _recipientStatus.value = PresenceStatus.ONLINE
+            }
+
+            PresenceStatus.AWAY.name -> {
+                _recipientStatus.value = PresenceStatus.AWAY
+            }
+
+            else -> {
+                _recipientStatus.value = PresenceStatus.OFFLINE
+            }
+        }
+    }
+
+    override fun onReceiveRecipientMessageStatus(message: Message) {
+        TODO("Not yet implemented")
     }
 
     override suspend fun onMessageSent(message: Message) {

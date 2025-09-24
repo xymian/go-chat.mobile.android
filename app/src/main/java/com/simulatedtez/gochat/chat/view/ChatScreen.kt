@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -65,6 +66,7 @@ import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.GoChatApplication
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.auth.view.AuthScreens
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
@@ -98,6 +100,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
     val messagesSent by chatViewModel.messagesSent.collectAsState(null)
+    val presenceStatus by chatViewModel.recipientStatus.observeAsState()
 
     val listState = rememberLazyListState()
 
@@ -124,6 +127,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     chatViewModel.loadMessages()
                 }
                 Lifecycle.Event.ON_PAUSE -> {
+                    chatViewModel.postPresence(PresenceStatus.AWAY)
                 }
                 Lifecycle.Event.ON_RESUME -> {
                     if (!chatViewModel.isChatServiceConnected()) {
@@ -249,7 +253,14 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(chatInfo.recipientsUsernames[0], fontWeight = FontWeight.Bold) },
+                title = {
+                    // 3. Update TopAppBar to show name and status
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(chatInfo.recipientsUsernames[0], fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        PresenceIndicator(status = presenceStatus)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         navigateUp()
@@ -288,6 +299,22 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
             }
         }
     }
+}
+
+@Composable
+fun PresenceIndicator(status: PresenceStatus?) {
+    val color = when (status) {
+        PresenceStatus.ONLINE -> Color(0xFF4CAF50)
+        PresenceStatus.AWAY -> Color(0xFFFFC107)
+        PresenceStatus.OFFLINE -> Color.Gray
+        else -> Color.Gray
+    }
+    Box(
+        modifier = Modifier
+            .size(10.dp)
+            .clip(CircleShape)
+            .background(color)
+    )
 }
 
 @Composable

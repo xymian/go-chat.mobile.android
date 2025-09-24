@@ -29,7 +29,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import java.time.LocalDateTime
-import java.util.LinkedList
 
 class ConversationsRepository(
     private val addNewChatUsecase: AddNewChatUsecase,
@@ -48,7 +47,6 @@ class ConversationsRepository(
         .setUsername(session.username)
         .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(listOf())
-        .setStorageInterface(chatDb)
         .setChatServiceListener(this)
         .setMessageReturner(socketMessageLabeler())
         .build(Message.serializer())
@@ -89,6 +87,12 @@ class ConversationsRepository(
 
     fun setListener(listener: ConversationEventListener) {
         conversationEventListener = listener
+    }
+
+    fun postPresence(message: Message) {
+        if (!message.presenceStatus.isNullOrEmpty()) {
+            chatService.sendMessage(message)
+        }
     }
 
     suspend fun getConversations(): List<DBConversation> {
@@ -200,6 +204,16 @@ class ConversationsRepository(
     }
 
     override fun onReceive(message: Message) {
+        if (!message.presenceStatus.isNullOrEmpty()) {
+            context.launch(Dispatchers.Main) {
+                conversationEventListener?.onReceiveRecipientActivityStatusMessage(message)
+            }
+            return
+        }
+
+        context.launch(Dispatchers.IO) {
+            chatDb.store(message)
+        }
         if (!isNewChat(message.chatReference)) {
             context.launch(Dispatchers.IO) {
                 conversationEventListener?.onReceive(message)
@@ -214,9 +228,14 @@ class ConversationsRepository(
     }
 
     override fun onSent(message: Message) {
-        val dbMessage = message.toDBMessage()
-        context.launch(Dispatchers.IO) {
-            chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
+        if (message.presenceStatus.isNullOrEmpty()) {
+            val dbMessage = message.toDBMessage()
+            context.launch(Dispatchers.IO) {
+                chatDb.store(message)
+                chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
+            }
+        } else {
+            conversationEventListener?.onPresencePosted()
         }
     }
 

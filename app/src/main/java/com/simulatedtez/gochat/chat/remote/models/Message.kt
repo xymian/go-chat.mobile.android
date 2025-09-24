@@ -17,7 +17,9 @@ open class Message(
     @SerialName("chatReference") open val chatReference: String,
     @SerialName("ack") open val ack: Boolean? = null,
     @SerialName("deliveredTimestamp") open var deliveredTimestamp: String? = null,
-    @SerialName("seenTimestamp") open var seenTimestamp: String? = null
+    @SerialName("seenTimestamp") open var seenTimestamp: String? = null,
+    @SerialName("messageStatus") open val messageStatus: String? = null,
+    @SerialName("presenceStatus") open val presenceStatus: String? = null
 ): ComparableMessage()
 
 fun Message.toUIMessage(isSent: Boolean): UIMessage {

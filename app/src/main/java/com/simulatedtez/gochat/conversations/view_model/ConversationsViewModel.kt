@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
@@ -25,6 +26,7 @@ import com.simulatedtez.gochat.conversations.repository.ConversationsRepository
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.client
+import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
+import java.time.LocalDateTime
+import java.util.UUID
 
 class ConversationsViewModel(
     private val conversationsRepository: ConversationsRepository
@@ -58,6 +62,11 @@ class ConversationsViewModel(
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
+
+    private val _recipientStatus = MutableLiveData<PresenceStatus>()
+    val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
+
+    private var hasPostedPresence = false
 
     private var holdingConversations = mutableListOf<DBConversation>()
 
@@ -197,6 +206,37 @@ class ConversationsViewModel(
 
     }
 
+    override fun onReceiveRecipientActivityStatusMessage(message: Message) {
+        if (!hasPostedPresence) {
+            val message = Message(
+                id = UUID.randomUUID().toString(),
+                message = "",
+                sender = message.receiver,
+                receiver = message.sender,
+                timestamp = LocalDateTime.now().toISOString(),
+                chatReference = message.chatReference,
+                ack = false,
+                presenceStatus = "AWAY"
+            )
+
+            conversationsRepository.postPresence(message)
+        }
+
+        when (message.presenceStatus) {
+            PresenceStatus.ONLINE.name -> {
+                _recipientStatus.value = PresenceStatus.ONLINE
+            }
+
+            PresenceStatus.AWAY.name -> {
+                _recipientStatus.value = PresenceStatus.AWAY
+            }
+
+            else -> {
+                _recipientStatus.value = PresenceStatus.OFFLINE
+            }
+        }
+    }
+
     override suspend fun onReceive(message: Message) {
         viewModelScope.launch(Dispatchers.Main) {
             rebuildConversations(listOf(message.toUIMessage(true)))
@@ -206,6 +246,10 @@ class ConversationsViewModel(
     override fun onCleared() {
         viewModelScope.cancel()
         conversationsRepository.cancel()
+    }
+
+    override fun onPresencePosted() {
+        hasPostedPresence = true
     }
 }
 

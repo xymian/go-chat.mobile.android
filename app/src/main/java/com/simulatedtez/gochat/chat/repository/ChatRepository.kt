@@ -5,7 +5,6 @@ import ChatServiceManager
 import SocketMessageReturner
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
-import com.simulatedtez.gochat.chat.database.DBMessage
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
 import com.simulatedtez.gochat.chat.database.toUIMessages
@@ -31,7 +30,7 @@ import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import okhttp3.Response
 import java.time.LocalDateTime
-import java.util.LinkedList
+import java.util.UUID
 
 class ChatRepository(
     private val chatInfo: ChatInfo,
@@ -54,25 +53,11 @@ class ChatRepository(
         .setUsername(chatInfo.username)
         .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(chatInfo.recipientsUsernames)
-        .setStorageInterface(chatDb)
         .setChatServiceListener(this)
         .setMessageReturner(socketMessageLabeler())
         .build(Message.serializer())
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
-
-    private var rushedIncomingMessages: LinkedList<Message> = LinkedList()
-    private var rushedOutgoingMessages: LinkedList<Message> = LinkedList()
-    
-    fun getNextOutgoingMessage(): Message? {
-        return if (rushedOutgoingMessages.isNotEmpty()) rushedOutgoingMessages.remove()
-        else null
-    }
-
-    fun getNextMessageFromRecipient(): Message? {
-        return if (rushedIncomingMessages.isNotEmpty()) rushedIncomingMessages.remove()
-        else null
-    }
 
     private fun socketMessageLabeler(): SocketMessageReturner<Message> {
         return object : SocketMessageReturner<Message> {
@@ -108,16 +93,29 @@ class ChatRepository(
 
     fun connectAndSendPendingMessages() {
         context.launch(Dispatchers.IO) {
-            val pendingMessages = mutableListOf<DBMessage>()
+            val pendingMessages = mutableListOf<Message>()
+
+            val status = Message(
+                id = UUID.randomUUID().toString(),
+                message = "",
+                sender = chatInfo.username,
+                receiver = chatInfo.recipientsUsernames[0],
+                timestamp = LocalDateTime.now().toISOString(),
+                chatReference = chatInfo.chatReference,
+                ack = false,
+                presenceStatus = "ONLINE"
+            )
+
+            pendingMessages.add(status)
             pendingMessages.addAll(chatDb.getUndeliveredMessages(
-                chatInfo.username, chatInfo.chatReference)
+                chatInfo.username, chatInfo.chatReference).toMessages()
             )
             pendingMessages.addAll(
-                chatDb.getPendingMessages(chatInfo.chatReference)
+                chatDb.getPendingMessages(chatInfo.chatReference).toMessages()
             )
             context.launch(Dispatchers.Main) {
                 createNewChatRoom {
-                    chatService.connectAndSend(pendingMessages.toMessages())
+                    chatService.connectAndSend(pendingMessages)
                 }
             }
         }
@@ -148,6 +146,12 @@ class ChatRepository(
             updateConversationLastMessage(message)
         }
         chatService.sendMessage(message)
+    }
+
+    fun postPresence(message: Message) {
+        if (!message.presenceStatus.isNullOrEmpty()) {
+            chatService.sendMessage(message)
+        }
     }
 
     suspend fun updateConversationLastMessage(message: Message) {
@@ -225,44 +229,40 @@ class ChatRepository(
     }
 
     override fun onSent(message: Message) {
-        val dbMessage = message.toDBMessage()
-        context.launch(Dispatchers.IO) {
-            chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
-        }
-        queueUpOutgoingMessage(message) { topMessage ->
-            context.launch(Dispatchers.Default) {
-                chatEventListener?.onMessageSent(topMessage)
+        if (!message.presenceStatus.isNullOrEmpty()) {
+            context.launch(Dispatchers.IO) {
+                chatDb.store(message)
+                val dbMessage = message.toDBMessage()
+                chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
             }
-        }
-    }
-
-    private fun queueUpOutgoingMessage(
-        message: Message, onQueueEmpty: (topMessage: Message) -> Unit
-    ) {
-        var index = -1
-        rushedOutgoingMessages.filterIndexed { i, msg ->
-            val isTheSame = msg.id == message.id
-            if (isTheSame) {
-                index = i
-                true
-            } else {
-                false
+            context.launch(Dispatchers.IO) {
+                chatEventListener?.onMessageSent(message)
             }
-        }
-        if (index > -1) {
-            rushedOutgoingMessages[index] = message
         } else {
-            rushedOutgoingMessages.add(message)
-        }
-        val topMessage = rushedOutgoingMessages.remove()
-        if (rushedOutgoingMessages.isEmpty()) {
-            onQueueEmpty(topMessage)
+            chatEventListener?.onPresencePosted()
         }
     }
 
     private var lastMessagesFromRecipient = mutableListOf<Message>()
 
     override fun onReceive(message: Message) {
+        if (!message.presenceStatus.isNullOrEmpty()) {
+            context.launch(Dispatchers.Main) {
+                chatEventListener?.onReceiveRecipientActivityStatusMessage(message)
+            }
+            return
+        }
+
+        if (!message.messageStatus.isNullOrEmpty()) {
+            context.launch(Dispatchers.Main) {
+                chatEventListener?.onReceiveRecipientMessageStatus(message)
+            }
+            return
+        }
+
+        context.launch(Dispatchers.IO) {
+            chatDb.store(message)
+        }
         val lastMessageOfTheSameId = lastMessagesFromRecipient.find { it.id == message.id }
         if (lastMessageOfTheSameId == null) {
             message.deliveredTimestamp = LocalDateTime.now().toISOString()
@@ -287,30 +287,6 @@ class ChatRepository(
                     chatEventListener?.onReceive(message)
                 }
             }
-        }
-    }
-
-    private fun queueUpIncomingMessage(
-        message: Message, onQueueEmpty: (topMessage: Message) -> Unit
-    ) {
-        var index = -1
-        rushedIncomingMessages.filterIndexed { i, msg ->
-            val isTheSame = msg.id == message.id
-            if (isTheSame) {
-                index = i
-                true
-            } else {
-                false
-            }
-        }
-        if (index > -1) {
-            rushedIncomingMessages[index] = message
-        } else {
-            rushedIncomingMessages.add(message)
-        }
-        val topMessage = rushedIncomingMessages.remove()
-        if (rushedIncomingMessages.isEmpty()) {
-            onQueueEmpty(topMessage)
         }
     }
 
