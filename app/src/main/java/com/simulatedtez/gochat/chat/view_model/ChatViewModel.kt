@@ -14,6 +14,7 @@ import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.repository.ChatRepository
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
+import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
@@ -58,8 +59,19 @@ class ChatViewModel(
     private val _recipientStatus = MutableLiveData<PresenceStatus>()
     val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
 
-    private var presence: Pair<String?, String?> = null to null
-    private var presenceId = UUID.randomUUID().toString()
+    fun loadMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _pagedMessages.postValue(chatRepo.loadNextPageMessages())
+        }
+    }
+
+    fun sendTypingStatus(isTyping: Boolean) {
+        if (isTyping) {
+            chatRepo.postMessageStatus(MessageStatus.TYPING)
+        } else {
+            chatRepo.postMessageStatus(MessageStatus.NOT_TYPING)
+        }
+    }
 
     fun resetSendAttempt() {
         _sendMessageAttempt.value = null
@@ -84,25 +96,12 @@ class ChatViewModel(
         chatRepo.sendMessage(message)
     }
 
-    fun postPresence(presenceStatus: PresenceStatus) {
-        val message = Message(
-            id = presenceId,
-            message = "",
-            sender = chatInfo.username,
-            receiver = chatInfo.recipientsUsernames[0],
-            timestamp = LocalDateTime.now().toISOString(),
-            chatReference = chatInfo.chatReference,
-            ack = false,
-            presenceStatus = presenceStatus.name
-        )
-
-        chatRepo.postPresence(message)
+    fun postMessageStatus(messageStatus: MessageStatus) {
+        chatRepo.postMessageStatus(messageStatus)
     }
 
-    fun loadMessages() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _pagedMessages.postValue(chatRepo.loadNextPageMessages())
-        }
+    fun postPresence(presenceStatus: PresenceStatus) {
+        chatRepo.postPresence(presenceStatus)
     }
 
     fun markConversationAsOpened() {
@@ -127,10 +126,6 @@ class ChatViewModel(
         _isConnected.value = false
     }
 
-    override fun onPresencePosted(message: Message) {
-        presence = (message.id to presence.second)
-    }
-
     override fun onSend(message: Message) {
         Napier.d("message: ${message.message} sent to ${chatInfo.recipientsUsernames[0]}")
     }
@@ -152,39 +147,11 @@ class ChatViewModel(
         }
     }
 
-    override fun onReceiveRecipientActivityStatusMessage(message: Message) {
-        if (presence.second != message.id) {
-            val message = Message(
-                id = presenceId,
-                message = "",
-                sender = message.receiver,
-                receiver = message.sender,
-                timestamp = LocalDateTime.now().toISOString(),
-                chatReference = chatInfo.chatReference,
-                ack = false,
-                presenceStatus = "ONLINE"
-            )
-            chatRepo.postPresence(message)
-        }
-
-        presence = (presence.first to message.id)
-
-        when (message.presenceStatus) {
-            PresenceStatus.ONLINE.name -> {
-                _recipientStatus.value = PresenceStatus.ONLINE
-            }
-
-            PresenceStatus.AWAY.name -> {
-                _recipientStatus.value = PresenceStatus.AWAY
-            }
-
-            else -> {
-                _recipientStatus.value = PresenceStatus.OFFLINE
-            }
-        }
+    override fun onReceiveRecipientActivityStatusMessage(presenceStatus: PresenceStatus) {
+        _recipientStatus.value = presenceStatus
     }
 
-    override fun onReceiveRecipientMessageStatus(message: Message) {
+    override fun onReceiveRecipientMessageStatus(messageStatus: MessageStatus) {
         TODO("Not yet implemented")
     }
 

@@ -63,12 +63,6 @@ class ConversationsViewModel(
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
 
-    private val _recipientStatus = MutableLiveData<PresenceStatus>()
-    val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
-
-    private var presence: Pair<String?, String?> = null to null
-    private var presenceId = UUID.randomUUID().toString()
-
     private var holdingConversations = mutableListOf<DBConversation>()
 
     fun resetTokenExpired() {
@@ -207,38 +201,6 @@ class ConversationsViewModel(
 
     }
 
-    override fun onReceiveRecipientActivityStatusMessage(message: Message) {
-        if (presence.second != message.id) {
-            val message = Message(
-                id = presenceId,
-                message = "",
-                sender = message.receiver,
-                receiver = message.sender,
-                timestamp = LocalDateTime.now().toISOString(),
-                chatReference = message.chatReference,
-                ack = false,
-                presenceStatus = "AWAY"
-            )
-
-            conversationsRepository.postPresence(message)
-        }
-
-        when (message.presenceStatus) {
-            PresenceStatus.ONLINE.name -> {
-                _recipientStatus.value = PresenceStatus.ONLINE
-            }
-
-            PresenceStatus.AWAY.name -> {
-                _recipientStatus.value = PresenceStatus.AWAY
-            }
-
-            else -> {
-                _recipientStatus.value = PresenceStatus.OFFLINE
-            }
-        }
-        presence = (presence.first to message.id)
-    }
-
     override suspend fun onReceive(message: Message) {
         viewModelScope.launch(Dispatchers.Main) {
             rebuildConversations(listOf(message.toUIMessage(true)))
@@ -248,10 +210,6 @@ class ConversationsViewModel(
     override fun onCleared() {
         viewModelScope.cancel()
         conversationsRepository.cancel()
-    }
-
-    override fun onPresencePosted(message: Message) {
-        presence = (message.id to presence.second)
     }
 }
 

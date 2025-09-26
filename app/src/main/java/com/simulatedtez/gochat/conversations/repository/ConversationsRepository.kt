@@ -6,6 +6,7 @@ import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
@@ -29,6 +30,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatServiceListener
 import java.time.LocalDateTime
+import java.util.UUID
 
 class ConversationsRepository(
     private val addNewChatUsecase: AddNewChatUsecase,
@@ -39,6 +41,9 @@ class ConversationsRepository(
     private var conversationEventListener: ConversationEventListener? = null
 
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    private var presence: Pair<String?, String?> = null to null
+    private var presenceId = UUID.randomUUID().toString()
 
     private var chatService = ChatServiceManager.Builder<Message>()
         .setSocketURL(
@@ -83,18 +88,22 @@ class ConversationsRepository(
         }
     }
 
-    fun killService() {
-        chatService.disconnect()
-    }
-
     fun setListener(listener: ConversationEventListener) {
         conversationEventListener = listener
     }
 
     fun postPresence(message: Message) {
-        if (!message.presenceStatus.isNullOrEmpty()) {
-            chatService.sendMessage(message)
-        }
+        val message = Message(
+            id = presenceId,
+            message = "",
+            sender = message.receiver,
+            receiver = message.sender,
+            timestamp = LocalDateTime.now().toISOString(),
+            chatReference = message.chatReference,
+            ack = false,
+            presenceStatus = "AWAY"
+        )
+        chatService.sendMessage(message)
     }
 
     suspend fun getConversations(): List<DBConversation> {
@@ -206,9 +215,9 @@ class ConversationsRepository(
     }
 
     override fun onReceive(message: Message) {
-        if (!message.presenceStatus.isNullOrEmpty()) {
+        PresenceStatus.getType(message.presenceStatus)?.let {
             context.launch(Dispatchers.Main) {
-                conversationEventListener?.onReceiveRecipientActivityStatusMessage(message)
+                handlePresenceMessage(message, it)
             }
             return
         }
@@ -229,6 +238,17 @@ class ConversationsRepository(
         }
     }
 
+    private fun handlePresenceMessage(
+        message: Message,
+        status: PresenceStatus
+    ) {
+        if (presence.second != message.id) {
+            postPresence(message)
+        }
+        presence = (presence.first to message.id)
+        conversationEventListener?.onReceiveRecipientActivityStatusMessage(status)
+    }
+
     override fun onSent(message: Message) {
         if (message.presenceStatus.isNullOrEmpty()) {
             val dbMessage = message.toDBMessage()
@@ -237,7 +257,7 @@ class ConversationsRepository(
                 chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
             }
         } else {
-            conversationEventListener?.onPresencePosted(message)
+            presence = (message.id to presence.second)
         }
     }
 

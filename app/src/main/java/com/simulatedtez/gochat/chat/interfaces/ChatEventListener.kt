@@ -1,11 +1,14 @@
 package com.simulatedtez.gochat.chat.interfaces
 
 import ChatServiceErrorResponse
+import com.simulatedtez.gochat.chat.models.MessageStatus
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.models.Message
 import okhttp3.Response
 
 interface ChatEventListener: SocketConnection, MessageSender, MessageReceiver {
-    fun onReceiveRecipientMessageStatus(message: Message)
+    fun onReceiveRecipientActivityStatusMessage(presenceStatus: PresenceStatus)
+    fun onReceiveRecipientMessageStatus(messageStatus: MessageStatus)
     suspend fun onMessageSent(message: Message)
 }
 
@@ -17,11 +20,9 @@ interface SocketConnection {
 }
 
 interface MessageSender {
-    fun onPresencePosted(message: Message)
     fun onSend(message: Message) {}
 }
 
 interface MessageReceiver {
-    fun onReceiveRecipientActivityStatusMessage(message: Message)
     suspend fun onReceive(message: Message)
 }

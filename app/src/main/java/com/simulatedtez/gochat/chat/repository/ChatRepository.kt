@@ -12,6 +12,8 @@ import com.simulatedtez.gochat.chat.interfaces.ChatEventListener
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.ChatPage
+import com.simulatedtez.gochat.chat.models.MessageStatus
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomParams
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
@@ -57,6 +59,9 @@ class ChatRepository(
         .build(Message.serializer())
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
+
+    private var presence: Pair<String?, String?> = null to null
+    private var presenceId = UUID.randomUUID().toString()
 
     private fun socketMessageLabeler(): SocketMessageReturner<Message> {
         return object : SocketMessageReturner<Message> {
@@ -150,10 +155,30 @@ class ChatRepository(
         chatService.sendMessage(message)
     }
 
-    fun postPresence(message: Message) {
-        if (!message.presenceStatus.isNullOrEmpty()) {
-            chatService.sendMessage(message)
-        }
+    fun postMessageStatus(messageStatus: MessageStatus) {
+        val message = Message(
+            id = presenceId,
+            message = "",
+            sender = chatInfo.username,
+            receiver = chatInfo.recipientsUsernames[0],
+            timestamp = LocalDateTime.now().toISOString(),
+            chatReference = chatInfo.chatReference,
+            messageStatus = messageStatus.name
+        )
+        chatService.sendMessage(message)
+    }
+
+    fun postPresence(presenceStatus: PresenceStatus) {
+        val message = Message(
+            id = presenceId,
+            message = "",
+            sender = chatInfo.username,
+            receiver = chatInfo.recipientsUsernames[0],
+            timestamp = LocalDateTime.now().toISOString(),
+            chatReference = chatInfo.chatReference,
+            presenceStatus = presenceStatus.name
+        )
+        chatService.sendMessage(message)
     }
 
     suspend fun updateConversationLastMessage(message: Message) {
@@ -241,23 +266,23 @@ class ChatRepository(
                 chatEventListener?.onMessageSent(message)
             }
         } else {
-            chatEventListener?.onPresencePosted(message)
+            presence = (message.id to presence.second)
         }
     }
 
     private var lastMessagesFromRecipient = mutableListOf<Message>()
 
     override fun onReceive(message: Message) {
-        if (!message.presenceStatus.isNullOrEmpty()) {
+        PresenceStatus.getType(message.presenceStatus)?.let {
             context.launch(Dispatchers.Main) {
-                chatEventListener?.onReceiveRecipientActivityStatusMessage(message)
+                handlePresenceMessage(message, it)
             }
             return
         }
 
-        if (!message.messageStatus.isNullOrEmpty()) {
+        MessageStatus.getType(message.messageStatus)?.let {
             context.launch(Dispatchers.Main) {
-                chatEventListener?.onReceiveRecipientMessageStatus(message)
+                chatEventListener?.onReceiveRecipientMessageStatus(it)
             }
             return
         }
@@ -265,16 +290,8 @@ class ChatRepository(
         context.launch(Dispatchers.IO) {
             chatDb.store(message)
         }
-        val lastMessageOfTheSameId = lastMessagesFromRecipient.find { it.id == message.id }
-        if (lastMessageOfTheSameId == null) {
-            message.deliveredTimestamp = LocalDateTime.now().toISOString()
-            lastMessagesFromRecipient.add(message)
-        } else {
-            if (message.deliveredTimestamp.isNullOrEmpty()) {
-                message.deliveredTimestamp = lastMessageOfTheSameId.deliveredTimestamp
-                lastMessagesFromRecipient.remove(lastMessageOfTheSameId)
-            }
-        }
+        setDeliveredTimestampForMessage(message)
+
         if (!isNewChat) {
             context.launch(Dispatchers.IO) {
                 updateConversationLastMessage(message)
@@ -288,6 +305,30 @@ class ChatRepository(
                     updateConversationLastMessage(message)
                     chatEventListener?.onReceive(message)
                 }
+            }
+        }
+    }
+
+    private fun handlePresenceMessage(
+        message: Message,
+        status: PresenceStatus
+    ) {
+        if (presence.second != message.id) {
+            postPresence(status)
+        }
+        presence = (presence.first to message.id)
+        chatEventListener?.onReceiveRecipientActivityStatusMessage(status)
+    }
+
+    private fun setDeliveredTimestampForMessage(message: Message) {
+        val lastMessageOfTheSameId = lastMessagesFromRecipient.find { it.id == message.id }
+        if (lastMessageOfTheSameId == null) {
+            message.deliveredTimestamp = LocalDateTime.now().toISOString()
+            lastMessagesFromRecipient.add(message)
+        } else {
+            if (message.deliveredTimestamp.isNullOrEmpty()) {
+                message.deliveredTimestamp = lastMessageOfTheSameId.deliveredTimestamp
+                lastMessagesFromRecipient.remove(lastMessageOfTheSameId)
             }
         }
     }

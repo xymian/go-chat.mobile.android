@@ -183,6 +183,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(sentMessage) {
         sentMessage?.let {
             messages.add(it)
+            chatViewModel.resetSendAttempt()
         }
     }
 
