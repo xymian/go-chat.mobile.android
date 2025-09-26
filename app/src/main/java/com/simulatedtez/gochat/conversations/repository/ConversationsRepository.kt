@@ -45,7 +45,6 @@ class ConversationsRepository(
             "${BuildConfig.WEBSOCKET_BASE_URL}/conversations/${session.username}"
         )
         .setUsername(session.username)
-        .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(listOf())
         .setChatServiceListener(this)
         .setMessageReturner(socketMessageLabeler())
@@ -70,7 +69,10 @@ class ConversationsRepository(
             }
 
             override fun isReturnableSocketMessage(message: Message): Boolean {
-                return message.sender != session.username && message.deliveredTimestamp == null
+                return message.sender != session.username
+                        && message.deliveredTimestamp == null
+                        && message.presenceStatus.isNullOrEmpty()
+                        && message.messageStatus.isNullOrEmpty()
             }
         }
     }
@@ -235,7 +237,7 @@ class ConversationsRepository(
                 chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
             }
         } else {
-            conversationEventListener?.onPresencePosted()
+            conversationEventListener?.onPresencePosted(message)
         }
     }
 

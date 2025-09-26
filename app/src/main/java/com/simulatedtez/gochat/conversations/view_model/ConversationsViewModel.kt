@@ -66,7 +66,8 @@ class ConversationsViewModel(
     private val _recipientStatus = MutableLiveData<PresenceStatus>()
     val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
 
-    private var hasPostedPresence = false
+    private var presence: Pair<String?, String?> = null to null
+    private var presenceId = UUID.randomUUID().toString()
 
     private var holdingConversations = mutableListOf<DBConversation>()
 
@@ -207,9 +208,9 @@ class ConversationsViewModel(
     }
 
     override fun onReceiveRecipientActivityStatusMessage(message: Message) {
-        if (!hasPostedPresence) {
+        if (presence.second != message.id) {
             val message = Message(
-                id = UUID.randomUUID().toString(),
+                id = presenceId,
                 message = "",
                 sender = message.receiver,
                 receiver = message.sender,
@@ -235,6 +236,7 @@ class ConversationsViewModel(
                 _recipientStatus.value = PresenceStatus.OFFLINE
             }
         }
+        presence = (presence.first to message.id)
     }
 
     override suspend fun onReceive(message: Message) {
@@ -248,8 +250,8 @@ class ConversationsViewModel(
         conversationsRepository.cancel()
     }
 
-    override fun onPresencePosted() {
-        hasPostedPresence = true
+    override fun onPresencePosted(message: Message) {
+        presence = (message.id to presence.second)
     }
 }
 

@@ -58,7 +58,8 @@ class ChatViewModel(
     private val _recipientStatus = MutableLiveData<PresenceStatus>()
     val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
 
-    private var hasPostedPresence = false
+    private var presence: Pair<String?, String?> = null to null
+    private var presenceId = UUID.randomUUID().toString()
 
     fun resetSendAttempt() {
         _sendMessageAttempt.value = null
@@ -84,9 +85,8 @@ class ChatViewModel(
     }
 
     fun postPresence(presenceStatus: PresenceStatus) {
-        hasPostedPresence = false
         val message = Message(
-            id = UUID.randomUUID().toString(),
+            id = presenceId,
             message = "",
             sender = chatInfo.username,
             receiver = chatInfo.recipientsUsernames[0],
@@ -127,8 +127,8 @@ class ChatViewModel(
         _isConnected.value = false
     }
 
-    override fun onPresencePosted() {
-        hasPostedPresence = true
+    override fun onPresencePosted(message: Message) {
+        presence = (message.id to presence.second)
     }
 
     override fun onSend(message: Message) {
@@ -153,9 +153,9 @@ class ChatViewModel(
     }
 
     override fun onReceiveRecipientActivityStatusMessage(message: Message) {
-        if (!hasPostedPresence) {
+        if (presence.second != message.id) {
             val message = Message(
-                id = UUID.randomUUID().toString(),
+                id = presenceId,
                 message = "",
                 sender = message.receiver,
                 receiver = message.sender,
@@ -164,9 +164,10 @@ class ChatViewModel(
                 ack = false,
                 presenceStatus = "ONLINE"
             )
-
             chatRepo.postPresence(message)
         }
+
+        presence = (presence.first to message.id)
 
         when (message.presenceStatus) {
             PresenceStatus.ONLINE.name -> {

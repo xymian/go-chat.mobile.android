@@ -51,7 +51,6 @@ class ChatRepository(
                     "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}"
         )
         .setUsername(chatInfo.username)
-        .setTimestampFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .setExpectedReceivers(chatInfo.recipientsUsernames)
         .setChatServiceListener(this)
         .setMessageReturner(socketMessageLabeler())
@@ -78,7 +77,10 @@ class ChatRepository(
             }
 
             override fun isReturnableSocketMessage(message: Message): Boolean {
-                return message.sender != chatInfo.username && message.deliveredTimestamp == null
+                return message.sender != chatInfo.username
+                        && message.deliveredTimestamp == null
+                        && message.presenceStatus.isNullOrEmpty()
+                        && message.messageStatus.isNullOrEmpty()
             }
         }
     }
@@ -229,7 +231,7 @@ class ChatRepository(
     }
 
     override fun onSent(message: Message) {
-        if (!message.presenceStatus.isNullOrEmpty()) {
+        if (message.presenceStatus.isNullOrEmpty()) {
             context.launch(Dispatchers.IO) {
                 chatDb.store(message)
                 val dbMessage = message.toDBMessage()
@@ -239,7 +241,7 @@ class ChatRepository(
                 chatEventListener?.onMessageSent(message)
             }
         } else {
-            chatEventListener?.onPresencePosted()
+            chatEventListener?.onPresencePosted(message)
         }
     }
 

@@ -17,7 +17,7 @@ interface SocketConnection {
 }
 
 interface MessageSender {
-    fun onPresencePosted()
+    fun onPresencePosted(message: Message)
     fun onSend(message: Message) {}
 }
 
