@@ -1,9 +1,11 @@
 package com.simulatedtez.gochat.chat.database
 
-import ILocalStorage
 import com.simulatedtez.gochat.chat.remote.models.Message
 
-interface IChatStorage: ILocalStorage<Message> {
+
+interface IChatStorage {
+    suspend fun store(messages: List<Message>)
+    suspend fun store(message: Message)
     suspend fun deleteAllMessages()
     suspend fun getUndeliveredMessages(username: String, chatRef: String): List<DBMessage>
     suspend fun setAsSeen(vararg messageRefToChatRef: Pair<String, String>)

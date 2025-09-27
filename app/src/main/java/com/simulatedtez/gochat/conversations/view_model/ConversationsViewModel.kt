@@ -54,8 +54,8 @@ class ConversationsViewModel(
     private val _conversations = MutableLiveData<List<DBConversation>>()
     val conversations: LiveData<List<DBConversation>> = _conversations
 
-    private val _errorMessage = MutableLiveData<String>()
-    val errorMessage: LiveData<String> = _errorMessage
+    private val _errorMessage = MutableLiveData<String?>()
+    val errorMessage: LiveData<String?> = _errorMessage
 
     private val _newMessage = Channel<UIMessage>(Channel.UNLIMITED)
     val newMessage = _newMessage.receiveAsFlow()
@@ -152,6 +152,10 @@ class ConversationsViewModel(
 
     fun resetAddConversation() {
         _newConversation.value = null
+    }
+
+    fun resetErrorMessage() {
+        _errorMessage.value = null
     }
 
     override fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>) {

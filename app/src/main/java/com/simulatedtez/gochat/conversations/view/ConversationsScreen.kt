@@ -156,6 +156,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
         errorMessage?.let {
             showBottomSheet = false
             snackbarHostState.showSnackbar(it)
+            viewModel.resetErrorMessage()
         }
     }
 
@@ -172,12 +173,6 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
             conversations.add(it)
             showBottomSheet = false
             viewModel.resetAddConversation()
-        }
-    }
-
-    LaunchedEffect(newMessages) {
-        newMessages?.let {
-
         }
     }
 

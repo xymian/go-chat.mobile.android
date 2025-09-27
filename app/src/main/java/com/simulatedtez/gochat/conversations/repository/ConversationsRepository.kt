@@ -1,7 +1,7 @@
 package com.simulatedtez.gochat.conversations.repository
 
 import ChatServiceErrorResponse
-import SocketMessageReturner
+import MessageReturner
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
@@ -28,7 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import listeners.ChatServiceListener
+import listeners.ChatEngineEventListener
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -37,7 +37,7 @@ class ConversationsRepository(
     private val createConversationsUsecase: CreateConversationsUsecase,
     private val conversationDB: ConversationDatabase,
     private val chatDb: IChatStorage,
-): ChatServiceListener<Message> {
+): ChatEngineEventListener<Message> {
     private var conversationEventListener: ConversationEventListener? = null
 
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -45,7 +45,7 @@ class ConversationsRepository(
     private var presence: Pair<String?, String?> = null to null
     private var presenceId = UUID.randomUUID().toString()
 
-    private var chatService = ChatServiceManager.Builder<Message>()
+    private var chatService = ChatEngine.Builder<Message>()
         .setSocketURL(
             "${BuildConfig.WEBSOCKET_BASE_URL}/conversations/${session.username}"
         )
@@ -55,8 +55,8 @@ class ConversationsRepository(
         .setMessageReturner(socketMessageLabeler())
         .build(Message.serializer())
 
-    private fun socketMessageLabeler(): SocketMessageReturner<Message> {
-        return object : SocketMessageReturner<Message> {
+    private fun socketMessageLabeler(): MessageReturner<Message> {
+        return object : MessageReturner<Message> {
             override fun returnMessage(
                 message: Message
             ): Message {
@@ -73,7 +73,7 @@ class ConversationsRepository(
                 )
             }
 
-            override fun isReturnableSocketMessage(message: Message): Boolean {
+            override fun isMessageReturnable(message: Message): Boolean {
                 return message.sender != session.username
                         && message.deliveredTimestamp == null
                         && message.presenceStatus.isNullOrEmpty()

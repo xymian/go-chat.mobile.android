@@ -1,8 +1,8 @@
 package com.simulatedtez.gochat.chat.repository
 
+import ChatEngine
 import ChatServiceErrorResponse
-import ChatServiceManager
-import SocketMessageReturner
+import MessageReturner
 import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
@@ -29,7 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import listeners.ChatServiceListener
+import listeners.ChatEngineEventListener
 import okhttp3.Response
 import java.time.LocalDateTime
 import java.util.UUID
@@ -39,7 +39,7 @@ class ChatRepository(
     private val createChatRoomUsecase: CreateChatRoomUsecase,
     private val chatDb: IChatStorage,
     private val conversationDB: ConversationDatabase
-): ChatServiceListener<Message> {
+): ChatEngineEventListener<Message> {
 
     private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -47,7 +47,7 @@ class ChatRepository(
     private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
 
     private var chatEventListener: ChatEventListener? = null
-    private var chatService = ChatServiceManager.Builder<Message>()
+    private var chatService = ChatEngine.Builder<Message>()
         .setSocketURL(
             "${BuildConfig.WEBSOCKET_BASE_URL}/room/${chatInfo.chatReference}" +
                     "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}"
@@ -63,8 +63,8 @@ class ChatRepository(
     private var presence: Pair<String?, String?> = null to null
     private var presenceId = UUID.randomUUID().toString()
 
-    private fun socketMessageLabeler(): SocketMessageReturner<Message> {
-        return object : SocketMessageReturner<Message> {
+    private fun socketMessageLabeler(): MessageReturner<Message> {
+        return object : MessageReturner<Message> {
             override fun returnMessage(
                 message: Message
             ): Message {
@@ -81,7 +81,7 @@ class ChatRepository(
                 )
             }
 
-            override fun isReturnableSocketMessage(message: Message): Boolean {
+            override fun isMessageReturnable(message: Message): Boolean {
                 return message.sender != chatInfo.username
                         && message.deliveredTimestamp == null
                         && message.presenceStatus.isNullOrEmpty()
@@ -130,7 +130,7 @@ class ChatRepository(
 
     fun killChatService() {
         chatService.disconnect()
-        chatService = ChatServiceManager.Builder<Message>()
+        chatService = ChatEngine.Builder<Message>()
             .build(Message.serializer())
     }
 
