@@ -157,7 +157,7 @@ class ChatRepository(
 
     fun postMessageStatus(messageStatus: MessageStatus) {
         val message = Message(
-            id = presenceId,
+            id = UUID.randomUUID().toString(),
             message = "",
             sender = chatInfo.username,
             receiver = chatInfo.recipientsUsernames[0],
@@ -256,17 +256,24 @@ class ChatRepository(
     }
 
     override fun onSent(message: Message) {
-        if (message.presenceStatus.isNullOrEmpty()) {
-            context.launch(Dispatchers.IO) {
-                chatDb.store(message)
-                val dbMessage = message.toDBMessage()
-                chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
+        when {
+            message.presenceStatus.isNullOrEmpty() && message.messageStatus.isNullOrEmpty() -> {
+                context.launch(Dispatchers.IO) {
+                    chatDb.store(message)
+                    val dbMessage = message.toDBMessage()
+                    chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
+                }
+                context.launch(Dispatchers.IO) {
+                    chatEventListener?.onMessageSent(message)
+                }
             }
-            context.launch(Dispatchers.IO) {
-                chatEventListener?.onMessageSent(message)
+
+            !message.presenceStatus.isNullOrEmpty() -> {
+                presence = (message.id to presence.second)
             }
-        } else {
-            presence = (message.id to presence.second)
+
+            !message.messageStatus.isNullOrEmpty() -> {
+            }
         }
     }
 

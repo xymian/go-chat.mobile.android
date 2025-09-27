@@ -1,6 +1,13 @@
 package com.simulatedtez.gochat.chat.view
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
@@ -55,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -75,6 +85,7 @@ import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,6 +112,8 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
     val messagesSent by chatViewModel.messagesSent.collectAsState(null)
     val presenceStatus by chatViewModel.recipientStatus.observeAsState()
+    val typingTimeLeft by chatViewModel.typingTimeLeft.observeAsState()
+    val isUserTyping by chatViewModel.isUserTyping.observeAsState()
 
     val listState = rememberLazyListState()
 
@@ -146,6 +159,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         onDispose {
             chatViewModel.exitChat()
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(typingTimeLeft) {
+        typingTimeLeft?.let {
+            if (it > 0) {
+                delay(1000L)
+                chatViewModel.countdownTypingTimeBy(1)
+            } else {
+                chatViewModel.postMessageStatus(MessageStatus.NOT_TYPING)
+                chatViewModel.stopTypingTimer()
+            }
         }
     }
 
@@ -237,16 +262,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
             listState.layoutInfo.visibleItemsInfo
         }.collect { visibleItems ->
 
-            val visibleMessages = visibleItems.map { item ->
-                messages.toList()[(messages.size - 1) - item.index]
-            }
+            if (isUserTyping != true) {
+                val visibleMessages = visibleItems.map { item ->
+                    messages.toList()[(messages.size - 1) - item.index]
+                }
 
-            val unseenMessages = visibleMessages.filterIndexed { index, m ->
-                m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
+                val unseenMessages = visibleMessages.filterIndexed { index, m ->
+                    m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
+                }
+                chatViewModel.markMessagesAsSeen(unseenMessages.map {
+                    it.message
+                })
             }
-            chatViewModel.markMessagesAsSeen(unseenMessages.map {
-                it.message
-            })
         }
     }
 
@@ -278,8 +305,25 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         bottomBar = {
             MessageInputBar(
                 message = messageText,
-                onMessageChange = { messageText = it },
+                onMessageChange = {
+                    if (messageText.length < it.length) {
+                        if (messageText.isEmpty()) {
+                            chatViewModel.restartTypingTimer()
+                            chatViewModel.postMessageStatus(MessageStatus.TYPING)
+                        } else {
+                            if (typingTimeLeft == null) {
+                                chatViewModel.restartTypingTimer()
+                                chatViewModel.postMessageStatus(MessageStatus.TYPING)
+                            } else {
+                                chatViewModel.restartTypingTimer()
+                            }
+                        }
+                    }
+                    messageText = it
+                },
                 onSendClick = {
+                    chatViewModel.postMessageStatus(MessageStatus.NOT_TYPING)
+                    chatViewModel.stopTypingTimer()
                     chatViewModel.sendMessage(messageText)
                     messageText = ""
                 }
@@ -294,12 +338,80 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 .padding(horizontal = 16.dp),
             reverseLayout = true
         ) {
+            if (isUserTyping == true) {
+                item {
+                    TypingIndicatorBubble()
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
             items(messages.reversed()) { message ->
                 MessageBubble(message = message)
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
+}
+
+@Composable
+fun TypingIndicatorBubble() {
+    val infiniteTransition = rememberInfiniteTransition(label = "typing-indicator-transition")
+
+    val dotBounceOffsetY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -20f, // How high the dots will bounce
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "dot-bounce"
+    )
+
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 16.dp
+                    )
+                )
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 16.dp, vertical = 20.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // We create three dots and apply the animation with a delay to each one.
+                TypingDot(delay = 0.dp, bounce = dotBounceOffsetY)
+                TypingDot(delay = 160.dp, bounce = dotBounceOffsetY)
+                TypingDot(delay = 320.dp, bounce = dotBounceOffsetY)
+            }
+        }
+    }
+}
+
+@Composable
+fun TypingDot(delay: Dp, bounce: Float) {
+    var yOffset by remember { mutableFloatStateOf(0f) }
+
+    // Use LaunchedEffect to apply animation with delay
+    LaunchedEffect(bounce) {
+        delay(delay.value.toLong())
+        yOffset = bounce
+    }
+
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .offset(y = yOffset.dp)
+            .clip(CircleShape)
+            .background(Color.Gray.copy(alpha = 0.7f))
+    )
 }
 
 @Composable

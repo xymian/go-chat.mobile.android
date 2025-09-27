@@ -246,7 +246,6 @@ class ConversationsRepository(
             postPresence(message)
         }
         presence = (presence.first to message.id)
-        conversationEventListener?.onReceiveRecipientActivityStatusMessage(status)
     }
 
     override fun onSent(message: Message) {

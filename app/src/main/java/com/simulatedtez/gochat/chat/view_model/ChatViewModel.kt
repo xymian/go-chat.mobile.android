@@ -38,6 +38,16 @@ class ChatViewModel(
     private val chatRepo: ChatRepository
 ): ViewModel(), ChatEventListener {
 
+    companion object {
+        const val TYPING_TOTAL_TIME = 3
+    }
+
+    private val _isUserTyping = MutableLiveData(false)
+    val isUserTyping: LiveData<Boolean> = _isUserTyping
+
+    private val _typingTimeLeft = MutableLiveData<Int?>(null)
+    val typingTimeLeft: LiveData<Int?> = _typingTimeLeft
+
     private val _messagesSent = Channel<UIMessage>()
     val messagesSent = _messagesSent.receiveAsFlow()
 
@@ -65,12 +75,16 @@ class ChatViewModel(
         }
     }
 
-    fun sendTypingStatus(isTyping: Boolean) {
-        if (isTyping) {
-            chatRepo.postMessageStatus(MessageStatus.TYPING)
-        } else {
-            chatRepo.postMessageStatus(MessageStatus.NOT_TYPING)
-        }
+    fun stopTypingTimer() {
+        _typingTimeLeft.value = null
+    }
+
+    fun restartTypingTimer() {
+        _typingTimeLeft.value = TYPING_TOTAL_TIME
+    }
+
+    fun countdownTypingTimeBy(amount: Int) {
+        _typingTimeLeft.value = _typingTimeLeft.value?.minus(amount)
     }
 
     fun resetSendAttempt() {
@@ -152,7 +166,12 @@ class ChatViewModel(
     }
 
     override fun onReceiveRecipientMessageStatus(messageStatus: MessageStatus) {
-        TODO("Not yet implemented")
+        when (messageStatus) {
+            MessageStatus.TYPING -> {
+                _isUserTyping.value = true
+            }
+            else -> _isUserTyping.value = false
+        }
     }
 
     override suspend fun onMessageSent(message: Message) {
