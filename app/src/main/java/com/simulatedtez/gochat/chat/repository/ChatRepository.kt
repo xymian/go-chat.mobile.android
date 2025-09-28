@@ -347,4 +347,16 @@ class ChatRepository(
     fun cancel() {
         context.cancel()
     }
+
+    fun buildUnsentMessage(message: String): Message {
+        return Message(
+            id = UUID.randomUUID().toString(),
+            message = message,
+            sender = chatInfo.username,
+            receiver = chatInfo.recipientsUsernames[0],
+            timestamp = LocalDateTime.now().toISOString(),
+            chatReference = chatInfo.chatReference,
+            ack = false
+        )
+    }
 }

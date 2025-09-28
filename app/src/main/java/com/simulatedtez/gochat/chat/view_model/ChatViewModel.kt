@@ -96,16 +96,7 @@ class ChatViewModel(
     }
 
     fun sendMessage(message: String) {
-        val message = Message(
-            id = UUID.randomUUID().toString(),
-            message = message,
-            sender = chatInfo.username,
-            receiver = chatInfo.recipientsUsernames[0],
-            timestamp = LocalDateTime.now().toISOString(),
-            chatReference = chatInfo.chatReference,
-            ack = false
-        )
-
+        val message = chatRepo.buildUnsentMessage(message)
         _sendMessageAttempt.value = message.toUIMessage(false)
         chatRepo.sendMessage(message)
     }
@@ -179,6 +170,7 @@ class ChatViewModel(
     }
 
     override suspend fun onReceive(message: Message) {
+        _isUserTyping.postValue(false)
         _newMessage.send(message.toUIMessage(true))
     }
 

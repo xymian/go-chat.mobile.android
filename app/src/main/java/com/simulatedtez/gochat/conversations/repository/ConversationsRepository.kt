@@ -6,6 +6,7 @@ import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
+import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
@@ -219,6 +220,10 @@ class ConversationsRepository(
             context.launch(Dispatchers.Main) {
                 handlePresenceMessage(message, it)
             }
+            return
+        }
+
+        MessageStatus.getType(message.messageStatus)?.let {
             return
         }
 

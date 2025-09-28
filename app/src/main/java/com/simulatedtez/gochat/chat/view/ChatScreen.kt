@@ -322,7 +322,6 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     messageText = it
                 },
                 onSendClick = {
-                    chatViewModel.postMessageStatus(MessageStatus.NOT_TYPING)
                     chatViewModel.stopTypingTimer()
                     chatViewModel.sendMessage(messageText)
                     messageText = ""
