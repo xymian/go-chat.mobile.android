@@ -1,6 +1,10 @@
 package com.simulatedtez.gochat
 
+import ChatEngine
 import com.simulatedtez.gochat.chat.models.ChatInfo
+import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.utils.newAppWideChatService
+import listeners.ChatEngineEventListener
 
 open class Session private constructor() {
 
@@ -9,6 +13,9 @@ open class Session private constructor() {
     var accessToken: String = ""
         private set
     var activeChat: ChatInfo? = null
+        private set
+
+    var appWideChatService: ChatEngine<Message>? = null
         private set
 
     companion object {
@@ -21,6 +28,12 @@ open class Session private constructor() {
             session = object: Session() {
 
             }
+        }
+    }
+
+    fun setupAppWideChatService(eventListener: ChatEngineEventListener<Message>) {
+        if (appWideChatService == null) {
+            appWideChatService = newAppWideChatService(session.username, eventListener)
         }
     }
 

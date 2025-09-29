@@ -21,6 +21,7 @@ import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
+import com.simulatedtez.gochat.utils.newPrivateChat
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
@@ -47,56 +48,12 @@ class ChatRepository(
     private var isNewChat = UserPreference.isNewChatHistory(chatInfo.chatReference)
 
     private var chatEventListener: ChatEventListener? = null
-    private var chatService = ChatEngine.Builder<Message>()
-        .setSocketURL(
-            "${BuildConfig.WEBSOCKET_BASE_URL}/room/${chatInfo.chatReference}" +
-                    "?me=${chatInfo.username}&other=${chatInfo.recipientsUsernames[0]}"
-        )
-        .setUsername(chatInfo.username)
-        .setExpectedReceivers(chatInfo.recipientsUsernames)
-        .setChatServiceListener(this)
-        .setMessageReturner(socketMessageLabeler())
-        .build(Message.serializer())
+    private var chatService = newPrivateChat(chatInfo, this)
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
 
     private var presence: Pair<String?, String?> = null to null
     private var presenceId = UUID.randomUUID().toString()
-
-    private fun socketMessageLabeler(): MessageReturner<Message> {
-        return object : MessageReturner<Message> {
-            override fun returnMessage(
-                message: Message
-            ): Message {
-                return Message(
-                    id = message.id,
-                    message = message.message,
-                    sender = message.sender,
-                    receiver = message.receiver,
-                    timestamp = message.timestamp,
-                    chatReference = message.chatReference,
-                    ack = true,
-                    deliveredTimestamp = LocalDateTime.now().toISOString(),
-                    seenTimestamp = message.seenTimestamp
-                )
-            }
-
-            override fun isMessageReturnable(message: Message): Boolean {
-                return message.sender != chatInfo.username
-                        && message.deliveredTimestamp == null
-                        && message.presenceStatus.isNullOrEmpty()
-                        && message.messageStatus.isNullOrEmpty()
-            }
-        }
-    }
-
-    fun connectToChatService() {
-        context.launch(Dispatchers.IO) {
-            createNewChatRoom {
-                chatService.connect()
-            }
-        }
-    }
 
     fun connectAndSendPendingMessages() {
         context.launch(Dispatchers.IO) {

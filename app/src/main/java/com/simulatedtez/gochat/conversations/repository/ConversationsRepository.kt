@@ -1,15 +1,12 @@
 package com.simulatedtez.gochat.conversations.repository
 
 import ChatServiceErrorResponse
-import MessageReturner
-import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.models.Message
-import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
@@ -22,96 +19,34 @@ import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
-import com.simulatedtez.gochat.utils.toISOString
+import com.simulatedtez.gochat.repository.AppRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import listeners.ChatEngineEventListener
-import java.time.LocalDateTime
-import java.util.UUID
 
 class ConversationsRepository(
     private val addNewChatUsecase: AddNewChatUsecase,
-    private val createConversationsUsecase: CreateConversationsUsecase,
+    createConversationsUsecase: CreateConversationsUsecase,
     private val conversationDB: ConversationDatabase,
-    private val chatDb: IChatStorage,
-): ChatEngineEventListener<Message> {
+    chatDb: IChatStorage,
+): AppRepository(createConversationsUsecase, chatDb), ChatEngineEventListener<Message> {
+
+    override val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
     private var conversationEventListener: ConversationEventListener? = null
-
-    private val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
-    private var presence: Pair<String?, String?> = null to null
-    private var presenceId = UUID.randomUUID().toString()
-
-    private var chatService = ChatEngine.Builder<Message>()
-        .setSocketURL(
-            "${BuildConfig.WEBSOCKET_BASE_URL}/conversations/${session.username}"
-        )
-        .setUsername(session.username)
-        .setExpectedReceivers(listOf())
-        .setChatServiceListener(this)
-        .setMessageReturner(socketMessageLabeler())
-        .build(Message.serializer())
-
-    private fun socketMessageLabeler(): MessageReturner<Message> {
-        return object : MessageReturner<Message> {
-            override fun returnMessage(
-                message: Message
-            ): Message {
-                return Message(
-                    id = message.id,
-                    message = message.message,
-                    sender = message.sender,
-                    receiver = message.receiver,
-                    timestamp = message.timestamp,
-                    chatReference = message.chatReference,
-                    ack = true,
-                    deliveredTimestamp = LocalDateTime.now().toISOString(),
-                    seenTimestamp = message.seenTimestamp
-                )
-            }
-
-            override fun isMessageReturnable(message: Message): Boolean {
-                return message.sender != session.username
-                        && message.deliveredTimestamp == null
-                        && message.presenceStatus.isNullOrEmpty()
-                        && message.messageStatus.isNullOrEmpty()
-            }
-        }
-    }
-
-    suspend fun connectToChatService() {
-        createNewConversations {
-            chatService.connect()
-        }
-    }
 
     fun setListener(listener: ConversationEventListener) {
         conversationEventListener = listener
-    }
-
-    fun postPresence(message: Message) {
-        val message = Message(
-            id = presenceId,
-            message = "",
-            sender = message.receiver,
-            receiver = message.sender,
-            timestamp = LocalDateTime.now().toISOString(),
-            chatReference = message.chatReference,
-            ack = false,
-            presenceStatus = "AWAY"
-        )
-        chatService.sendMessage(message)
     }
 
     suspend fun getConversations(): List<DBConversation> {
         return conversationDB.getConversations()
     }
 
-    suspend fun createNewConversations(onSuccess: (() -> Unit)) {
+    override suspend fun createNewConversations(onSuccess: (() -> Unit)) {
         val params = CreateConversationsParams(
             request = CreateConversationsParams.Request(
                 username = session.username
@@ -137,10 +72,6 @@ class ConversationsRepository(
                 }
             }
         )
-    }
-
-    suspend fun updateConversationLastMessage(message: Message) {
-        conversationDB.updateConversationLastMessage(message)
     }
 
     suspend fun storeConversations(conversations: List<DBConversation>) {
@@ -241,31 +172,5 @@ class ConversationsRepository(
                 conversationEventListener?.onReceive(message)
             }
         }
-    }
-
-    private fun handlePresenceMessage(
-        message: Message,
-        status: PresenceStatus
-    ) {
-        if (presence.second != message.id) {
-            postPresence(message)
-        }
-        presence = (presence.first to message.id)
-    }
-
-    override fun onSent(message: Message) {
-        if (message.presenceStatus.isNullOrEmpty()) {
-            val dbMessage = message.toDBMessage()
-            context.launch(Dispatchers.IO) {
-                chatDb.store(message)
-                chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
-            }
-        } else {
-            presence = (message.id to presence.second)
-        }
-    }
-
-    fun cancel() {
-        context.cancel()
     }
 }

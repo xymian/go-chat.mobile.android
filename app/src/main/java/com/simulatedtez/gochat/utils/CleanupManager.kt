@@ -15,10 +15,12 @@ class CleanupManager(
         private var INSTANCE: CleanupManager? = null
         fun get(context: Context): CleanupManager {
             return INSTANCE ?: synchronized(this) {
-                CleanupManager(
+                val instance = CleanupManager(
                     ChatDatabase.get(context),
                     ConversationDatabase.get(context)
                 )
+                INSTANCE = instance
+                instance
             }
         }
     }

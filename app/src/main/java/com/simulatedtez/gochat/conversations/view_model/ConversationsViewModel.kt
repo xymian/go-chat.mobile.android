@@ -224,7 +224,9 @@ class ConversationsViewModelProvider(private val context: Context): ViewModelPro
             createConversationsUsecase = CreateConversationsUsecase(ChatApiService(client)),
             ConversationDatabase.get(context),
             ChatDatabase.get(context)
-        )
+        ).apply {
+            session.appWideChatService?.setListener(this)
+        }
         return ConversationsViewModel(repo).apply {
             repo.setListener(this)
         } as T

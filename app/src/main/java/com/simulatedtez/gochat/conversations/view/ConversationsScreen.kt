@@ -94,8 +94,6 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val conversationHistory by viewModel.conversations.observeAsState(listOf())
     val errorMessage by viewModel.errorMessage.observeAsState()
 
-    val newMessages by viewModel.newMessage.collectAsState(null)
-
     val isConnected by viewModel.isConnected.observeAsState()
 
     val tokenExpired by viewModel.tokenExpired.observeAsState()
