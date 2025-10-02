@@ -66,6 +66,7 @@ import com.simulatedtez.gochat.R
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.chat.models.ChatInfo
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
@@ -119,6 +120,9 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     viewModel.fetchConversations()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    viewModel.postNewPresenceStatus(PresenceStatus.AWAY)
                 }
                 else -> {}
             }

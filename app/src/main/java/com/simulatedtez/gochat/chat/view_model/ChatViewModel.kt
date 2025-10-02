@@ -69,12 +69,6 @@ class ChatViewModel(
     private val _recipientStatus = MutableLiveData<PresenceStatus>()
     val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
 
-    fun loadMessages() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _pagedMessages.postValue(chatRepo.loadNextPageMessages())
-        }
-    }
-
     fun stopTypingTimer() {
         _typingTimeLeft.value = null
     }
@@ -93,6 +87,12 @@ class ChatViewModel(
 
     fun resetTokenExpired() {
         _tokenExpired.value = false
+    }
+
+    fun loadMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _pagedMessages.postValue(chatRepo.loadNextPageMessages())
+        }
     }
 
     fun sendMessage(message: String) {

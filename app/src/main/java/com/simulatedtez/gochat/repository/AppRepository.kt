@@ -7,6 +7,7 @@ import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
+import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsUsecase
 import com.simulatedtez.gochat.remote.IResponse
@@ -43,25 +44,25 @@ open class AppRepository(
     }
 
     fun handlePresenceMessage(
-        message: Message,
-        status: PresenceStatus
+        messageId: String,
+        chatRef: String
     ) {
-        if (presence.second != message.id) {
-            postPresence(message)
+        if (presence.second != messageId) {
+            postPresence(PresenceStatus.AWAY, chatRef)
         }
-        presence = (presence.first to message.id)
+        presence = (presence.first to messageId)
     }
 
-    fun postPresence(message: Message) {
+    fun postPresence(presence: PresenceStatus, chatRef: String) {
         val message = Message(
             id = presenceId,
             message = "",
-            sender = message.receiver,
-            receiver = message.sender,
+            sender = session.username,
+            receiver = "",
             timestamp = LocalDateTime.now().toISOString(),
-            chatReference = message.chatReference,
+            chatReference = chatRef,
             ack = false,
-            presenceStatus = "AWAY"
+            presenceStatus = presence.name
         )
         session.appWideChatService?.sendMessage(message)
     }
@@ -99,7 +100,7 @@ open class AppRepository(
     }
 
     override fun onConnect() {
-
+        //postPresence(PresenceStatus.AWAY)
     }
 
     override fun onDisconnect(t: Throwable, response: Response?) {
@@ -113,7 +114,7 @@ open class AppRepository(
     override fun onReceive(message: Message) {
         PresenceStatus.getType(message.presenceStatus)?.let {
             context.launch(Dispatchers.Main) {
-                handlePresenceMessage(message, it)
+                handlePresenceMessage(message.id, message.chatReference)
             }
             return
         }

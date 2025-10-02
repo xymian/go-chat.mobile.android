@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import listeners.ChatEngineEventListener
+import java.util.UUID
 
 class ConversationsRepository(
     private val addNewChatUsecase: AddNewChatUsecase,
@@ -80,6 +81,11 @@ class ConversationsRepository(
 
     suspend fun storeConversation(conversation: DBConversation) {
         conversationDB.insertConversation(conversation)
+    }
+
+    fun postNewUserPresence(presenceStatus: PresenceStatus) {
+        presenceId = UUID.randomUUID().toString()
+        //postPresence(presenceStatus, "")
     }
 
     suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
@@ -149,7 +155,7 @@ class ConversationsRepository(
     override fun onReceive(message: Message) {
         PresenceStatus.getType(message.presenceStatus)?.let {
             context.launch(Dispatchers.Main) {
-                handlePresenceMessage(message, it)
+                handlePresenceMessage(message.id, message.chatReference)
             }
             return
         }
