@@ -83,11 +83,6 @@ class ConversationsRepository(
         conversationDB.insertConversation(conversation)
     }
 
-    fun postNewUserPresence(presenceStatus: PresenceStatus) {
-        presenceId = UUID.randomUUID().toString()
-        //postPresence(presenceStatus, "")
-    }
-
     suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
         val params = StartNewChatParams(
             request = StartNewChatParams.Request(
@@ -136,6 +131,7 @@ class ConversationsRepository(
     }
 
     override fun onConnect() {
+        userPresenceHelper.postNewUserPresence(PresenceStatus.AWAY)
         conversationEventListener?.onConnect()
     }
 
@@ -155,7 +151,9 @@ class ConversationsRepository(
     override fun onReceive(message: Message) {
         PresenceStatus.getType(message.presenceStatus)?.let {
             context.launch(Dispatchers.Main) {
-                handlePresenceMessage(message.id, message.chatReference)
+                userPresenceHelper.handlePresenceMessage(
+                    it, message.id, message.chatReference
+                ) {}
             }
             return
         }

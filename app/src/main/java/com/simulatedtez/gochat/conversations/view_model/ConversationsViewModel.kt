@@ -158,10 +158,6 @@ class ConversationsViewModel(
         _errorMessage.value = null
     }
 
-    fun postNewPresenceStatus(presenceStatus: PresenceStatus) {
-        conversationsRepository.postNewUserPresence(presenceStatus)
-    }
-
     override fun onAddNewChatFailed(error: IResponse.Failure<ParentResponse<NewChatResponse>>) {
         _waiting.value = false
         if (error.response?.statusCode == HttpStatusCode.NotFound.value) {

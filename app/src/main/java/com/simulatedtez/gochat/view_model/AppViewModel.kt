@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
+import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsUsecase
@@ -25,6 +26,10 @@ open class AppViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             appRepository.connectToChatService()
         }
+    }
+
+    fun postNewPresenceStatus(presenceStatus: PresenceStatus) {
+        appRepository.userPresenceHelper.postNewUserPresence(presenceStatus)
     }
 
     override fun onCleared() {

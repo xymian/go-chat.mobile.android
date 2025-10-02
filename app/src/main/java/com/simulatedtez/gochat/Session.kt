@@ -12,7 +12,7 @@ open class Session private constructor() {
         private set
     var accessToken: String = ""
         private set
-    var activeChat: ChatInfo? = null
+    var lastActiveChat: ChatInfo? = null
         private set
 
     var appWideChatService: ChatEngine<Message>? = null
@@ -38,7 +38,7 @@ open class Session private constructor() {
     }
 
     fun setActiveChat(chatInfo: ChatInfo) {
-        activeChat = chatInfo
+        lastActiveChat = chatInfo
     }
 
     fun saveAccessToken(token: String) {

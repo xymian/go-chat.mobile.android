@@ -121,9 +121,6 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
                 Lifecycle.Event.ON_CREATE -> {
                     viewModel.fetchConversations()
                 }
-                Lifecycle.Event.ON_RESUME -> {
-                    viewModel.postNewPresenceStatus(PresenceStatus.AWAY)
-                }
                 else -> {}
             }
         }

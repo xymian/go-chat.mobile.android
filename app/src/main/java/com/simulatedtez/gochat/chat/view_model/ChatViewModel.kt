@@ -106,7 +106,9 @@ class ChatViewModel(
     }
 
     fun postPresence(presenceStatus: PresenceStatus) {
-        chatRepo.postPresence(presenceStatus)
+        chatRepo.userPresenceHelper.postPresence(
+            presenceStatus, chatInfo.chatReference
+        )
     }
 
     fun markConversationAsOpened() {

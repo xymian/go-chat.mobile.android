@@ -2,8 +2,6 @@ package com.simulatedtez.gochat.chat.repository
 
 import ChatEngine
 import ChatServiceErrorResponse
-import MessageReturner
-import com.simulatedtez.gochat.BuildConfig
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
@@ -21,6 +19,7 @@ import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
+import com.simulatedtez.gochat.utils.UserPresenceHelper
 import com.simulatedtez.gochat.utils.newPrivateChat
 import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
@@ -50,10 +49,9 @@ class ChatRepository(
     private var chatEventListener: ChatEventListener? = null
     private var chatService = newPrivateChat(chatInfo, this)
 
-    val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
+    val userPresenceHelper = UserPresenceHelper(chatService, PresenceStatus.ONLINE)
 
-    private var presence: Pair<String?, String?> = null to null
-    private var presenceId = UUID.randomUUID().toString()
+    val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
 
     fun connectAndSendPendingMessages() {
         context.launch(Dispatchers.IO) {
@@ -121,19 +119,6 @@ class ChatRepository(
             timestamp = LocalDateTime.now().toISOString(),
             chatReference = chatInfo.chatReference,
             messageStatus = messageStatus.name
-        )
-        chatService.sendMessage(message)
-    }
-
-    fun postPresence(presenceStatus: PresenceStatus) {
-        val message = Message(
-            id = presenceId,
-            message = "",
-            sender = chatInfo.username,
-            receiver = chatInfo.recipientsUsernames[0],
-            timestamp = LocalDateTime.now().toISOString(),
-            chatReference = chatInfo.chatReference,
-            presenceStatus = presenceStatus.name
         )
         chatService.sendMessage(message)
     }
@@ -226,7 +211,7 @@ class ChatRepository(
             }
 
             !message.presenceStatus.isNullOrEmpty() -> {
-                presence = (message.id to presence.second)
+                userPresenceHelper.onPresenceSent(message.id)
             }
 
             !message.messageStatus.isNullOrEmpty() -> {
@@ -239,7 +224,11 @@ class ChatRepository(
     override fun onReceive(message: Message) {
         PresenceStatus.getType(message.presenceStatus)?.let {
             context.launch(Dispatchers.Main) {
-                handlePresenceMessage(message, it)
+                userPresenceHelper.handlePresenceMessage(
+                    it, message.id, message.chatReference
+                ) { status ->
+                    chatEventListener?.onReceiveRecipientActivityStatusMessage(status)
+                }
             }
             return
         }
@@ -271,17 +260,6 @@ class ChatRepository(
                 }
             }
         }
-    }
-
-    private fun handlePresenceMessage(
-        message: Message,
-        status: PresenceStatus
-    ) {
-        if (presence.second != message.id) {
-            postPresence(status)
-        }
-        presence = (presence.first to message.id)
-        chatEventListener?.onReceiveRecipientActivityStatusMessage(status)
     }
 
     private fun setDeliveredTimestampForMessage(message: Message) {
