@@ -1,15 +1,18 @@
 package com.simulatedtez.gochat.conversations.repository
 
 import ChatServiceErrorResponse
+import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.PresenceStatus
+import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
+import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_usecases.StartNewChatParams
 import com.simulatedtez.gochat.conversations.remote.api_usecases.AddNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsParams
@@ -81,6 +84,26 @@ class ConversationsRepository(
 
     suspend fun storeConversation(conversation: DBConversation) {
         conversationDB.insertConversation(conversation)
+    }
+
+    suspend fun rebuildConversations(newMessage: Message): List<DBConversation> {
+        val temporaryConversationList = getConversations().toMutableList()
+        val convo = temporaryConversationList.find { newMessage.chatReference == it.chatReference }
+        if (convo != null) {
+            val conversation = DBConversation(
+                otherUser = convo.otherUser,
+                chatReference = convo.chatReference,
+                lastMessage = newMessage.message,
+                timestamp = newMessage.timestamp,
+                unreadCount = convo.unreadCount + 1
+            )
+            temporaryConversationList.remove(convo)
+            temporaryConversationList.add(conversation)
+            storeConversation(conversation)
+        } else {
+            addNewConversation(newMessage.sender, 1)
+        }
+        return temporaryConversationList.sortedBy { it.timestamp }
     }
 
     suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
@@ -176,5 +199,41 @@ class ConversationsRepository(
                 conversationEventListener?.onReceive(message)
             }
         }
+    }
+
+    suspend fun addNewConversation(other: String, messageCount: Int) {
+        addNewChat(session.username, other, messageCount) { isAdded ->
+            if (isAdded) {
+                context.launch(Dispatchers.IO) {
+                    connectToChatService()
+                }
+            }
+        }
+    }
+
+    fun createConversationFrom(message: Message): Conversation {
+        return Conversation(
+            other = message.sender,
+            chatReference = message.chatReference,
+            lastMessage = message.message,
+            timestamp = message.timestamp,
+            unreadCount = 1
+        )
+    }
+
+    fun newConversations(mutableMessages: MutableList<UIMessage>): MutableMap<String, Conversation> {
+        val chatMap = mutableMapOf<String, Conversation>()
+        mutableMessages.forEach {
+            if (chatMap[it.message.chatReference] == null) {
+                chatMap[it.message.chatReference] = createConversationFrom(it.message)
+            } else {
+                chatMap[it.message.chatReference]?.apply {
+                    unreadCount += 1
+                    lastMessage = it.message.message
+                    timestamp = it.message.timestamp
+                }
+            }
+        }
+        return chatMap
     }
 }

@@ -9,15 +9,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
-import com.simulatedtez.gochat.chat.models.PresenceStatus
-import com.simulatedtez.gochat.chat.models.UIMessage
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
-import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
-import com.simulatedtez.gochat.conversations.models.Conversation
 import com.simulatedtez.gochat.conversations.remote.api_services.ConversationsService
 import com.simulatedtez.gochat.conversations.remote.api_usecases.AddNewChatUsecase
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsUsecase
@@ -26,7 +22,6 @@ import com.simulatedtez.gochat.conversations.repository.ConversationsRepository
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.client
-import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +30,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
-import java.time.LocalDateTime
-import java.util.UUID
 
 class ConversationsViewModel(
     private val conversationsRepository: ConversationsRepository
@@ -48,8 +41,8 @@ class ConversationsViewModel(
     private val _waiting = MutableLiveData<Boolean>()
     val waiting: LiveData<Boolean> = _waiting
 
-    private val _newConversation = MutableLiveData<DBConversation?>()
-    val newConversation: LiveData<DBConversation?> = _newConversation
+    private val _newConversation = Channel<DBConversation>()
+    val newConversation = _newConversation.receiveAsFlow()
 
     private val _conversations = MutableLiveData<List<DBConversation>>()
     val conversations: LiveData<List<DBConversation>> = _conversations
@@ -57,13 +50,8 @@ class ConversationsViewModel(
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
-    private val _newMessage = Channel<UIMessage>(Channel.UNLIMITED)
-    val newMessage = _newMessage.receiveAsFlow()
-
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
-
-    private var holdingConversations = mutableListOf<DBConversation>()
 
     fun resetTokenExpired() {
         _tokenExpired.value = false
@@ -71,87 +59,17 @@ class ConversationsViewModel(
 
     fun fetchConversations() {
         viewModelScope.launch(Dispatchers.IO) {
-            holdingConversations = conversationsRepository.getConversations().toMutableList()
-            _conversations.postValue(holdingConversations)
+            _conversations.postValue(
+                conversationsRepository.getConversations().toMutableList()
+            )
         }
-    }
-
-    fun rebuildConversations(newMessages: List<UIMessage>) {
-        val tempConversations = mutableListOf<DBConversation>()
-        val mutableMessages = mutableListOf<UIMessage>().apply {
-            addAll(newMessages)
-        }
-        val updatedConversations = mutableListOf<DBConversation>()
-        holdingConversations.forEach { convo ->
-            val messages = mutableMessages.filter {
-                it.message.chatReference == convo.chatReference
-            }.sortedBy { it.message.timestamp }
-            if (messages.isNotEmpty()) {
-                mutableMessages.removeAll(messages)
-                val conversation = DBConversation(
-                    otherUser = convo.otherUser,
-                    chatReference = convo.chatReference,
-                    lastMessage = messages.last().message.message,
-                    timestamp = messages.last().message.timestamp,
-                    unreadCount = convo.unreadCount + messages.size
-                )
-                tempConversations.add(conversation)
-                updatedConversations.add(conversation)
-            } else {
-                tempConversations.add(convo)
-            }
-
-            if (updatedConversations.isNotEmpty()) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    conversationsRepository.storeConversations(updatedConversations)
-                }
-            }
-
-            newConversations(mutableMessages).forEach { _, conversation ->
-                addNewConversation(conversation.other, conversation.unreadCount)
-            }
-            holdingConversations = tempConversations
-            _conversations.value = tempConversations
-        }
-    }
-
-    private fun newConversations(mutableMessages: MutableList<UIMessage>): MutableMap<String, Conversation> {
-        val chatMap = mutableMapOf<String, Conversation>()
-        mutableMessages.forEach {
-            if (chatMap[it.message.chatReference] == null) {
-                chatMap[it.message.chatReference] = Conversation(
-                    other = it.message.sender,
-                    chatReference = it.message.chatReference,
-                    lastMessage = it.message.message,
-                    timestamp = it.message.timestamp,
-                    unreadCount = 1
-                )
-            } else {
-                chatMap[it.message.chatReference]?.apply {
-                    unreadCount += 1
-                    lastMessage = it.message.message
-                    timestamp = it.message.timestamp
-                }
-            }
-        }
-        return chatMap
     }
 
     fun addNewConversation(other: String, messageCount: Int) {
         _waiting.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            conversationsRepository.addNewChat(session.username, other, messageCount) { isAdded ->
-                if (isAdded) {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        conversationsRepository.connectToChatService()
-                    }
-                }
-            }
+            conversationsRepository.addNewConversation(other, messageCount)
         }
-    }
-
-    fun resetAddConversation() {
-        _newConversation.value = null
     }
 
     fun resetErrorMessage() {
@@ -170,9 +88,10 @@ class ConversationsViewModel(
             otherUser = chat.other,
             chatReference = chat.chatReference
         )
-        holdingConversations.add(newConversation)
-        _newConversation.value = newConversation
-        _waiting.value = false
+        viewModelScope.launch(Dispatchers.IO) {
+            _newConversation.send(newConversation)
+            _waiting.postValue(false)
+        }
     }
 
     override fun onError(response: IResponse.Failure<ParentResponse<String>>) {
@@ -207,7 +126,9 @@ class ConversationsViewModel(
 
     override suspend fun onReceive(message: Message) {
         viewModelScope.launch(Dispatchers.Main) {
-            rebuildConversations(listOf(message.toUIMessage(true)))
+            _conversations.postValue(
+                conversationsRepository.rebuildConversations(message)
+            )
         }
     }
 

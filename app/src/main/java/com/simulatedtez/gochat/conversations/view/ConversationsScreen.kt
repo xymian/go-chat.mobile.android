@@ -91,7 +91,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val viewModel: ConversationsViewModel = viewModel(factory = viewModelFactory)
 
     val waiting by viewModel.waiting.observeAsState(false)
-    val newConversation by viewModel.newConversation.observeAsState()
+    val newConversation by viewModel.newConversation.collectAsState(null)
     val conversationHistory by viewModel.conversations.observeAsState(listOf())
     val errorMessage by viewModel.errorMessage.observeAsState()
 
@@ -171,7 +171,6 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
         newConversation?.let {
             conversations.add(it)
             showBottomSheet = false
-            viewModel.resetAddConversation()
         }
     }
 

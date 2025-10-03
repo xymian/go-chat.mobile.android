@@ -21,7 +21,6 @@ import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.remote.client
-import com.simulatedtez.gochat.utils.toISOString
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
@@ -30,8 +29,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
-import java.time.LocalDateTime
-import java.util.UUID
 
 class ChatViewModel(
     private val chatInfo: ChatInfo,
