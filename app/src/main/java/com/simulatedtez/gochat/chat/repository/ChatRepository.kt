@@ -205,9 +205,7 @@ class ChatRepository(
                     val dbMessage = message.toDBMessage()
                     chatDb.setAsSent((dbMessage.id to dbMessage.chatReference))
                 }
-                context.launch(Dispatchers.IO) {
-                    chatEventListener?.onMessageSent(message)
-                }
+                chatEventListener?.onMessageSent(message)
             }
 
             !message.presenceStatus.isNullOrEmpty() -> {
@@ -244,20 +242,19 @@ class ChatRepository(
             chatDb.store(message)
         }
         setDeliveredTimestampForMessage(message)
-
         if (!isNewChat) {
             context.launch(Dispatchers.IO) {
                 updateConversationLastMessage(message)
-                chatEventListener?.onReceive(message)
             }
+            chatEventListener?.onReceive(message)
         } else {
             UserPreference.storeChatHistoryStatus(chatInfo.chatReference, false)
             isNewChat = false
             if (message.seenTimestamp.isNullOrEmpty()) {
                 context.launch(Dispatchers.IO) {
                     updateConversationLastMessage(message)
-                    chatEventListener?.onReceive(message)
                 }
+                chatEventListener?.onReceive(message)
             }
         }
     }

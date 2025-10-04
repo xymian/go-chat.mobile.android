@@ -29,6 +29,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
+import java.util.LinkedList
+import java.util.Queue
 
 class ChatViewModel(
     private val chatInfo: ChatInfo,
@@ -45,11 +47,11 @@ class ChatViewModel(
     private val _typingTimeLeft = MutableLiveData<Int?>(null)
     val typingTimeLeft: LiveData<Int?> = _typingTimeLeft
 
-    private val _messagesSent = Channel<UIMessage>()
-    val messagesSent = _messagesSent.receiveAsFlow()
+    private val _messagesSent = MutableLiveData<UIMessage>()
+    val messagesSent: LiveData<UIMessage> = _messagesSent
 
-    private val _newMessage = Channel<UIMessage>()
-    val newMessage = _newMessage.receiveAsFlow()
+    private val _newMessage = MutableLiveData<UIMessage>()
+    val newMessage: LiveData<UIMessage> = _newMessage
 
     private val _pagedMessages = MutableLiveData<ChatPage>()
     val pagedMessages: LiveData<ChatPage> = _pagedMessages
@@ -65,6 +67,9 @@ class ChatViewModel(
 
     private val _recipientStatus = MutableLiveData<PresenceStatus>()
     val recipientStatus: LiveData<PresenceStatus> = _recipientStatus
+
+    private val sentMessagesQueue: Queue<Message> = LinkedList()
+    private val receivedMessagesQueue: Queue<Message> = LinkedList()
 
     fun stopTypingTimer() {
         _typingTimeLeft.value = null
@@ -164,13 +169,41 @@ class ChatViewModel(
         }
     }
 
-    override suspend fun onMessageSent(message: Message) {
-        _messagesSent.send(message.toUIMessage(true))
+    fun popSentMessagesQueue() {
+        if (sentMessagesQueue.isNotEmpty()) {
+            sentMessagesQueue.remove()
+            sentMessagesQueue.peek()?.let {
+                _messagesSent.value = it.toUIMessage(true)
+            }
+        }
     }
 
-    override suspend fun onReceive(message: Message) {
+    fun popReceivedMessagesQueue() {
+        if (receivedMessagesQueue.isNotEmpty()) {
+            receivedMessagesQueue.remove()
+            receivedMessagesQueue.peek()?.let {
+                _newMessage.value = it.toUIMessage(true)
+            }
+        }
+    }
+
+    override fun onMessageSent(message: Message) {
+        if (sentMessagesQueue.isEmpty()) {
+            sentMessagesQueue.add(message)
+            _messagesSent.value = message.toUIMessage(true)
+        } else {
+            sentMessagesQueue.add(message)
+        }
+    }
+
+    override fun onReceive(message: Message) {
         _isUserTyping.postValue(false)
-        _newMessage.send(message.toUIMessage(true))
+        if (receivedMessagesQueue.isEmpty()) {
+            receivedMessagesQueue.add(message)
+            _newMessage.value = message.toUIMessage(true)
+        } else {
+            receivedMessagesQueue.add(message)
+        }
     }
 
     override fun onCleared() {

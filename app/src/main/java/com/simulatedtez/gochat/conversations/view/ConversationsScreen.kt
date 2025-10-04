@@ -66,7 +66,6 @@ import com.simulatedtez.gochat.R
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.auth.view.AuthScreens
 import com.simulatedtez.gochat.chat.models.ChatInfo
-import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModel
 import com.simulatedtez.gochat.conversations.view_model.ConversationsViewModelProvider
@@ -75,7 +74,6 @@ import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
 import io.ktor.websocket.Frame
-import kotlinx.coroutines.coroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,6 +163,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
             conversations.addAll(conversationHistory)
             viewModel.connectToChatService()
         }
+        viewModel.popReceivedMessagesQueue()
     }
 
     LaunchedEffect(newConversation) {

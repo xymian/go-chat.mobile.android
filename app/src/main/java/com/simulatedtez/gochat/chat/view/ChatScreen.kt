@@ -104,13 +104,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     var messageText by remember { mutableStateOf("") }
     var hasFinishedInitialMessagesLoad by remember { mutableStateOf(false) }
     
-    val newMessage by chatViewModel.newMessage.collectAsState(null)
-    val newMessages by chatViewModel.newMessage.collectAsState(null)
+    val newMessage by chatViewModel.newMessage.observeAsState(null)
     val pagedMessages by chatViewModel.pagedMessages.observeAsState()
     val sentMessage by chatViewModel.sendMessageAttempt.observeAsState()
     val isConnected by chatViewModel.isConnected.observeAsState()
     val tokenExpired by chatViewModel.tokenExpired.observeAsState()
-    val messagesSent by chatViewModel.messagesSent.collectAsState(null)
+    val messagesSent by chatViewModel.messagesSent.observeAsState(null)
     val presenceStatus by chatViewModel.recipientStatus.observeAsState()
     val typingTimeLeft by chatViewModel.typingTimeLeft.observeAsState()
     val isUserTyping by chatViewModel.isUserTyping.observeAsState()
@@ -185,6 +184,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
             }
             messages.clear()
             messages.addAll(modifiedMessages)
+            chatViewModel.popSentMessagesQueue()
         }
     }
 
@@ -246,14 +246,10 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(newMessage) {
         newMessage?.let {
             messages.add(it)
-            chatViewModel.markMessagesAsSeen(listOf(it.message))
-        }
-    }
-
-    LaunchedEffect(newMessages) {
-        newMessages?.let {
-            messages.add(it)
-            chatViewModel.markMessagesAsSeen(listOf(it.message))
+            if (it.message.seenTimestamp.isNullOrEmpty()) {
+                chatViewModel.markMessagesAsSeen(listOf(it.message))
+            }
+            chatViewModel.popReceivedMessagesQueue()
         }
     }
 

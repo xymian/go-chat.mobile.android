@@ -9,7 +9,7 @@ import okhttp3.Response
 interface ChatEventListener: SocketConnection, MessageSender, MessageReceiver {
     fun onReceiveRecipientActivityStatusMessage(presenceStatus: PresenceStatus)
     fun onReceiveRecipientMessageStatus(messageStatus: MessageStatus)
-    suspend fun onMessageSent(message: Message)
+    fun onMessageSent(message: Message)
 }
 
 interface SocketConnection {
@@ -24,5 +24,5 @@ interface MessageSender {
 }
 
 interface MessageReceiver {
-    suspend fun onReceive(message: Message)
+    fun onReceive(message: Message)
 }

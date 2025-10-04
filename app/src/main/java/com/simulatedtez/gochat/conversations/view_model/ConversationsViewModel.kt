@@ -11,6 +11,7 @@ import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
@@ -30,6 +31,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
+import java.util.LinkedList
+import java.util.Queue
 
 class ConversationsViewModel(
     private val conversationsRepository: ConversationsRepository
@@ -52,6 +55,8 @@ class ConversationsViewModel(
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
+
+    private val receivedMessagesQueue: Queue<Message> = LinkedList()
 
     fun resetTokenExpired() {
         _tokenExpired.value = false
@@ -124,11 +129,29 @@ class ConversationsViewModel(
 
     }
 
-    override suspend fun onReceive(message: Message) {
-        viewModelScope.launch(Dispatchers.Main) {
-            _conversations.postValue(
-                conversationsRepository.rebuildConversations(message)
-            )
+    fun popReceivedMessagesQueue() {
+        if (receivedMessagesQueue.isNotEmpty()) {
+            receivedMessagesQueue.remove()
+            viewModelScope.launch(Dispatchers.Default) {
+                receivedMessagesQueue.peek()?.let {
+                    _conversations.postValue(
+                        conversationsRepository.rebuildConversations(it)
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onReceive(message: Message) {
+        viewModelScope.launch(Dispatchers.Default) {
+            if (receivedMessagesQueue.isEmpty()) {
+                receivedMessagesQueue.add(message)
+                _conversations.postValue(
+                    conversationsRepository.rebuildConversations(message)
+                )
+            } else {
+                receivedMessagesQueue.add(message)
+            }
         }
     }
 

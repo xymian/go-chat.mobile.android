@@ -189,15 +189,11 @@ class ConversationsRepository(
             chatDb.store(message)
         }
         if (!isNewChat(message.chatReference)) {
-            context.launch(Dispatchers.IO) {
-                conversationEventListener?.onReceive(message)
-            }
+            conversationEventListener?.onReceive(message)
         } else {
             UserPreference.storeChatHistoryStatus(
                 message.chatReference, false)
-            context.launch(Dispatchers.IO) {
-                conversationEventListener?.onReceive(message)
-            }
+            conversationEventListener?.onReceive(message)
         }
     }
 
