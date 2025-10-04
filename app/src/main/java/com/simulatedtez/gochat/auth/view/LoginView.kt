@@ -18,8 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -46,8 +44,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.simulatedtez.gochat.AppNavigation
-import com.simulatedtez.gochat.auth.repository.LoginRepository
 import com.simulatedtez.gochat.auth.view_model.LoginViewModel
 import com.simulatedtez.gochat.auth.view_model.LoginViewModelFactory
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
@@ -72,6 +68,7 @@ fun NavController.LoginScreen() {
         loginSuccess?.let {
             if (loginSuccess == true) {
                 navigate("conversations")
+                loginViewModel.initializeAppWideChatService(context)
                 loginViewModel.resetLoginState()
             } else {
                 coroutineScope.launch {

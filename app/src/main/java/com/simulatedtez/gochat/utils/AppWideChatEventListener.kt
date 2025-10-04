@@ -1,10 +1,13 @@
-package com.simulatedtez.gochat.repository
+package com.simulatedtez.gochat.utils
 
 import ChatServiceErrorResponse
+import android.content.Context
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.models.PresenceStatus
+import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.remote.models.toDBMessage
 import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversationsParams
@@ -12,7 +15,7 @@ import com.simulatedtez.gochat.conversations.remote.api_usecases.CreateConversat
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
-import com.simulatedtez.gochat.utils.UserPresenceHelper
+import com.simulatedtez.gochat.remote.client
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,10 +25,26 @@ import kotlinx.coroutines.launch
 import listeners.ChatEngineEventListener
 import okhttp3.Response
 
-open class AppRepository(
+open class AppWideChatEventListener(
     val createConversationsUsecase: CreateConversationsUsecase,
     val chatDb: IChatStorage
 ): ChatEngineEventListener<Message> {
+
+    companion object {
+
+        var instance: AppWideChatEventListener? = null
+
+        fun get(context: Context): AppWideChatEventListener {
+            return instance ?: {
+                AppWideChatEventListener(
+                    createConversationsUsecase = CreateConversationsUsecase(ChatApiService(client)),
+                    ChatDatabase.get(context)
+                ).apply {
+                    instance = this
+                }
+            }()
+        }
+    }
 
     open val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 

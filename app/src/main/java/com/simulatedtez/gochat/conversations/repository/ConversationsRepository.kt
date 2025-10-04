@@ -22,7 +22,7 @@ import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.IResponseHandler
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.Response
-import com.simulatedtez.gochat.repository.AppRepository
+import com.simulatedtez.gochat.utils.AppWideChatEventListener
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +36,7 @@ class ConversationsRepository(
     createConversationsUsecase: CreateConversationsUsecase,
     private val conversationDB: ConversationDatabase,
     chatDb: IChatStorage,
-): AppRepository(createConversationsUsecase, chatDb), ChatEngineEventListener<Message> {
+): AppWideChatEventListener(createConversationsUsecase, chatDb), ChatEngineEventListener<Message> {
 
     override val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -78,10 +78,6 @@ class ConversationsRepository(
         )
     }
 
-    suspend fun storeConversations(conversations: List<DBConversation>) {
-        conversationDB.insertConversations(conversations)
-    }
-
     suspend fun storeConversation(conversation: DBConversation) {
         conversationDB.insertConversation(conversation)
     }
@@ -106,7 +102,7 @@ class ConversationsRepository(
         return temporaryConversationList.sortedBy { it.timestamp }
     }
 
-    suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
+    private suspend fun addNewChat(username: String, otherUser: String, messageCount: Int, completion: (isSuccess: Boolean) -> Unit) {
         val params = StartNewChatParams(
             request = StartNewChatParams.Request(
                 user = username, other = otherUser
@@ -205,31 +201,5 @@ class ConversationsRepository(
                 }
             }
         }
-    }
-
-    fun createConversationFrom(message: Message): Conversation {
-        return Conversation(
-            other = message.sender,
-            chatReference = message.chatReference,
-            lastMessage = message.message,
-            timestamp = message.timestamp,
-            unreadCount = 1
-        )
-    }
-
-    fun newConversations(mutableMessages: MutableList<UIMessage>): MutableMap<String, Conversation> {
-        val chatMap = mutableMapOf<String, Conversation>()
-        mutableMessages.forEach {
-            if (chatMap[it.message.chatReference] == null) {
-                chatMap[it.message.chatReference] = createConversationFrom(it.message)
-            } else {
-                chatMap[it.message.chatReference]?.apply {
-                    unreadCount += 1
-                    lastMessage = it.message.message
-                    timestamp = it.message.timestamp
-                }
-            }
-        }
-        return chatMap
     }
 }

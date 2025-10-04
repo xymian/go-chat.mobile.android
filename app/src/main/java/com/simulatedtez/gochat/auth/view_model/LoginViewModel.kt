@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
-import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.auth.remote.api_services.AuthApiService
 import com.simulatedtez.gochat.auth.remote.api_usecases.LoginUsecase
 import com.simulatedtez.gochat.auth.remote.models.LoginResponse
@@ -16,6 +15,7 @@ import com.simulatedtez.gochat.auth.repository.LoginRepository
 import com.simulatedtez.gochat.remote.IResponse
 import com.simulatedtez.gochat.remote.ParentResponse
 import com.simulatedtez.gochat.remote.client
+import com.simulatedtez.gochat.utils.AppWideChatEventListener
 import com.simulatedtez.gochat.utils.CleanupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -54,6 +54,10 @@ class LoginViewModel(
 
     fun cancel() {
         viewModelScope.cancel()
+    }
+
+    fun initializeAppWideChatService(context: Context) {
+        session.setupAppWideChatService(AppWideChatEventListener.get(context))
     }
 }
 
