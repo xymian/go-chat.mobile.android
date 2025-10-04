@@ -10,8 +10,8 @@
 - exchange real-time messages  
 - a simple, clean interface
 - send and receive message receipts (**SENT**, **DELIVERED**, **SEEN**)
-- presence status indicator: tells when receipients in the chat are **ONLINE**, **AWAY**, **OFFLINE**
-- typing indicator to show when the recepient of a chat is activively typing in the chat
+- presence status indicator: tells when recipients in the chat are **ONLINE**, **AWAY**, **OFFLINE**
+- typing indicator to show when the recipient of a chat is activively typing in the chat
 
 ---
 
