@@ -30,6 +30,7 @@ open class AppViewModel(
     }
 
     override fun onCleared() {
+        chatEngineEventListener.cancel()
         viewModelScope.cancel()
     }
 }

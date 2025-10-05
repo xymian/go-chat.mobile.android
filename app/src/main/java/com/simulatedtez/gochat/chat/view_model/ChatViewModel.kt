@@ -20,6 +20,7 @@ import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
+import com.simulatedtez.gochat.conversations.view.ConversationsScreenActions
 import com.simulatedtez.gochat.remote.client
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
@@ -213,6 +214,15 @@ class ChatViewModel(
 
     fun isChatServiceConnected(): Boolean {
         return chatRepo.isChatServiceConnected()
+    }
+
+    fun onUserPresenceOnline(action: () -> Unit) {
+        when (chatRepo.userPresenceHelper.presenceStatus) {
+            PresenceStatus.ONLINE -> {
+                action()
+            }
+            else -> {}
+        }
     }
 }
 

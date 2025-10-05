@@ -142,6 +142,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                     chatViewModel.postPresence(PresenceStatus.AWAY)
                 }
                 Lifecycle.Event.ON_RESUME -> {
+                    chatViewModel.postPresence(PresenceStatus.ONLINE)
                     if (!chatViewModel.isChatServiceConnected()) {
                         chatViewModel.connectAndSendPendingMessages()
                     }
@@ -247,7 +248,9 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         newMessage?.let {
             messages.add(it)
             if (it.message.seenTimestamp.isNullOrEmpty()) {
-                chatViewModel.markMessagesAsSeen(listOf(it.message))
+                chatViewModel.onUserPresenceOnline {
+                    chatViewModel.markMessagesAsSeen(listOf(it.message))
+                }
             }
             chatViewModel.popReceivedMessagesQueue()
         }

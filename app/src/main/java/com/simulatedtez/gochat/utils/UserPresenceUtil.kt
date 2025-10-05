@@ -31,14 +31,15 @@ open class UserPresenceHelper(
     }
 
     fun postNewUserPresence(presenceStatus: PresenceStatus) {
-        presenceId = UUID.randomUUID().toString()
         this.presenceStatus = presenceStatus
+        presenceId = UUID.randomUUID().toString()
         session.lastActiveChat?.let {
             postPresence(presenceStatus, it.chatReference)
         }
     }
 
-    fun postPresence(presence: PresenceStatus, chatRef: String) {
+    fun postPresence(presenceStatus: PresenceStatus, chatRef: String) {
+        this.presenceStatus = presenceStatus
         val message = Message(
             id = presenceId,
             message = "",
@@ -47,7 +48,7 @@ open class UserPresenceHelper(
             timestamp = LocalDateTime.now().toISOString(),
             chatReference = chatRef,
             ack = false,
-            presenceStatus = presence.name
+            presenceStatus = presenceStatus.name
         )
         chatEngine?.sendMessage(message)
     }
