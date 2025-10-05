@@ -2,6 +2,7 @@ package com.simulatedtez.gochat
 
 import android.app.Application
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.utils.AppWideChatEventListener
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import java.time.LocalDateTime
@@ -19,6 +20,7 @@ class GoChatApplication: Application(), INetworkMonitor {
         UserPreference.getAccessToken()?.let {
             session.saveAccessToken(it)
         }
+        session.setupAppWideChatService(AppWideChatEventListener.get(applicationContext))
 
         if (UserPreference.getCutOffDateForMarkingMessagesAsSeen() == null) {
             UserPreference.storeCutOffDateForMarkingMessagesAsSeen(

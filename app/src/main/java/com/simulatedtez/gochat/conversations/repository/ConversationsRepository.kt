@@ -36,7 +36,7 @@ class ConversationsRepository(
     createConversationsUsecase: CreateConversationsUsecase,
     private val conversationDB: ConversationDatabase,
     chatDb: IChatStorage,
-): AppWideChatEventListener(createConversationsUsecase, chatDb), ChatEngineEventListener<Message> {
+): AppWideChatEventListener(createConversationsUsecase, chatDb) {
 
     override val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
