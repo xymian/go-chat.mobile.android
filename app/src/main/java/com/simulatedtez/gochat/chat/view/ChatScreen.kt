@@ -168,8 +168,12 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 delay(1000L)
                 chatViewModel.countdownTypingTimeBy(1)
             } else {
-                chatViewModel.postMessageStatus(MessageStatus.NOT_TYPING)
-                chatViewModel.stopTypingTimer()
+                if (chatViewModel.isTyping) {
+                    chatViewModel.restartTypingTimer(chatViewModel.newCharCount)
+                } else {
+                    chatViewModel.postMessageStatus(MessageStatus.NOT_TYPING)
+                    chatViewModel.stopTypingTimer()
+                }
             }
         }
     }
@@ -307,16 +311,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 onMessageChange = {
                     if (messageText.length < it.length) {
                         if (messageText.isEmpty()) {
-                            chatViewModel.restartTypingTimer()
+                            chatViewModel.restartTypingTimer(it.length)
                             chatViewModel.postMessageStatus(MessageStatus.TYPING)
                         } else {
                             if (typingTimeLeft == null) {
-                                chatViewModel.restartTypingTimer()
+                                chatViewModel.restartTypingTimer(it.length)
                                 chatViewModel.postMessageStatus(MessageStatus.TYPING)
                             } else {
-                                chatViewModel.restartTypingTimer()
+                                chatViewModel.newCharCount = it.length
                             }
                         }
+                    } else {
+                        chatViewModel.newCharCount = it.length
                     }
                     messageText = it
                 },

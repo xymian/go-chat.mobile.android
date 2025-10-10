@@ -48,6 +48,14 @@ class ChatViewModel(
     private val _typingTimeLeft = MutableLiveData<Int?>(null)
     val typingTimeLeft: LiveData<Int?> = _typingTimeLeft
 
+    var initialCharCount = 0
+    var newCharCount = 0
+
+    val isTyping: Boolean
+        get() {
+            return initialCharCount < newCharCount
+        }
+
     private val _messagesSent = MutableLiveData<UIMessage>()
     val messagesSent: LiveData<UIMessage> = _messagesSent
 
@@ -76,12 +84,14 @@ class ChatViewModel(
         _typingTimeLeft.value = null
     }
 
-    fun restartTypingTimer() {
+    fun restartTypingTimer(charCount: Int) {
+        newCharCount - charCount
         _typingTimeLeft.value = TYPING_TOTAL_TIME
     }
 
     fun countdownTypingTimeBy(amount: Int) {
         _typingTimeLeft.value = _typingTimeLeft.value?.minus(amount)
+        initialCharCount = newCharCount
     }
 
     fun resetSendAttempt() {
