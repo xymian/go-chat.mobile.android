@@ -85,13 +85,13 @@ class ChatViewModel(
     }
 
     fun restartTypingTimer(charCount: Int) {
-        newCharCount - charCount
+        newCharCount = charCount
         _typingTimeLeft.value = TYPING_TOTAL_TIME
     }
 
     fun countdownTypingTimeBy(amount: Int) {
-        _typingTimeLeft.value = _typingTimeLeft.value?.minus(amount)
         initialCharCount = newCharCount
+        _typingTimeLeft.value = _typingTimeLeft.value?.minus(amount)
     }
 
     fun resetSendAttempt() {

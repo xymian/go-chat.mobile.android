@@ -85,7 +85,9 @@ import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -168,6 +170,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 delay(1000L)
                 chatViewModel.countdownTypingTimeBy(1)
             } else {
+                delay(2000L)
                 if (chatViewModel.isTyping) {
                     chatViewModel.restartTypingTimer(chatViewModel.newCharCount)
                 } else {
