@@ -50,7 +50,8 @@ private fun socketMessageLabeler(): MessageReturner<Message> {
                 chatReference = message.chatReference,
                 ack = true,
                 deliveredTimestamp = LocalDateTime.now().toISOString(),
-                seenTimestamp = message.seenTimestamp
+                seenTimestamp = message.seenTimestamp,
+                isReadReceiptEnabled = message.isReadReceiptEnabled
             )
         }
 

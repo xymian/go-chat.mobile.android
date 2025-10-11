@@ -2,6 +2,7 @@ package com.simulatedtez.gochat.chat.repository
 
 import ChatEngine
 import ChatServiceErrorResponse
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.UserPreference
 import com.simulatedtez.gochat.chat.database.IChatStorage
 import com.simulatedtez.gochat.chat.database.toMessages
@@ -93,12 +94,10 @@ class ChatRepository(
         chatEventListener = listener
     }
 
-    fun markMessagesAsSeen(messages: List<Message>) {
-        messages.forEach {
-            if (it.timestamp > cutOffForMarkingMessagesAsSeen!!) {
-                it.seenTimestamp = LocalDateTime.now().toISOString()
-                chatService.returnMessage(it)
-            }
+    fun markMessagesAsSeen(message: Message) {
+        if (message.timestamp > cutOffForMarkingMessagesAsSeen!!) {
+            message.seenTimestamp = LocalDateTime.now().toISOString()
+            chatService.returnMessage(message)
         }
     }
 
@@ -288,7 +287,8 @@ class ChatRepository(
             receiver = chatInfo.recipientsUsernames[0],
             timestamp = LocalDateTime.now().toISOString(),
             chatReference = chatInfo.chatReference,
-            ack = false
+            ack = false,
+            isReadReceiptEnabled = session.isReadReceiptEnabled
         )
     }
 }

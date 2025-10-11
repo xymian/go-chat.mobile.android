@@ -18,17 +18,25 @@ open class Session private constructor() {
     var appWideChatService: ChatEngine<Message>? = null
         private set
 
-    companion object {
-        var session = object: Session() {
+    var isReadReceiptEnabled: Boolean = false
+    private set
 
-        }
+    init {
+        isReadReceiptEnabled = UserPreference.isReadReceiptEnabled()
+    }
+
+    companion object {
+        var session = object: Session() {}
         private set
 
         fun clear() {
-            session = object: Session() {
-
-            }
+            session = object: Session() {}
         }
+    }
+
+    fun toggleReadReceipt(isEnabled: Boolean) {
+        UserPreference.readReceiptToggle(isEnabled)
+        isReadReceiptEnabled = isEnabled
     }
 
     fun setupAppWideChatService(eventListener: ChatEngineEventListener<Message>) {

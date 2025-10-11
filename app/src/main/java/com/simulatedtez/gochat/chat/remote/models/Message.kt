@@ -19,7 +19,8 @@ open class Message(
     @SerialName("deliveredTimestamp") open var deliveredTimestamp: String? = null,
     @SerialName("seenTimestamp") open var seenTimestamp: String? = null,
     @SerialName("messageStatus") open val messageStatus: String? = null,
-    @SerialName("presenceStatus") open val presenceStatus: String? = null
+    @SerialName("presenceStatus") open val presenceStatus: String? = null,
+    @SerialName("isReadReceiptEnabled") open val isReadReceiptEnabled: Boolean? = false
 ): ComparableMessage()
 
 fun Message.toUIMessage(isSent: Boolean): UIMessage {
@@ -47,7 +48,8 @@ fun Message.toDBMessage(): DBMessage {
         ack = ack,
         deliveredTimestamp = deliveredTimestamp,
         seenTimestamp = seenTimestamp,
-        isSent = null
+        isSent = null,
+        isReadReceiptEnabled = isReadReceiptEnabled
     )
 }
 

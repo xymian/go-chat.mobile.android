@@ -48,7 +48,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
@@ -85,9 +84,7 @@ import com.simulatedtez.gochat.chat.view_model.ChatViewModelProvider
 import com.simulatedtez.gochat.utils.INetworkMonitor
 import com.simulatedtez.gochat.utils.NetworkMonitor
 import com.simulatedtez.gochat.utils.formatTimestamp
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -254,10 +251,8 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
     LaunchedEffect(newMessage) {
         newMessage?.let {
             messages.add(it)
-            if (it.message.seenTimestamp.isNullOrEmpty()) {
-                chatViewModel.onUserPresenceOnline {
-                    chatViewModel.markMessagesAsSeen(listOf(it.message))
-                }
+            chatViewModel.onUserPresenceOnline {
+                chatViewModel.markMessagesAsSeenIfEnabled(listOf(it.message))
             }
             chatViewModel.popReceivedMessagesQueue()
         }
@@ -269,16 +264,18 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
         }.collect { visibleItems ->
 
             if (isUserTyping != true) {
-                val visibleMessages = visibleItems.map { item ->
-                    messages.toList()[(messages.size - 1) - item.index]
-                }
+                if (session.isReadReceiptEnabled) {
+                    val visibleMessages = visibleItems.map { item ->
+                        messages.toList()[(messages.size - 1) - item.index]
+                    }
 
-                val unseenMessages = visibleMessages.filterIndexed { index, m ->
-                    m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
+                    val unseenMessages = visibleMessages.filterIndexed { index, m ->
+                        m.message.sender != session.username && m.message.seenTimestamp.isNullOrEmpty()
+                    }
+                    chatViewModel.markMessagesAsSeenIfEnabled(unseenMessages.map {
+                        it.message
+                    })
                 }
-                chatViewModel.markMessagesAsSeen(unseenMessages.map {
-                    it.message
-                })
             }
         }
     }

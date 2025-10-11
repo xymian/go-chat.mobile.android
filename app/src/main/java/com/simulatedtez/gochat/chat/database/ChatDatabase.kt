@@ -110,7 +110,8 @@ class DBMessage(
     @ColumnInfo("ack") val ack: Boolean? = null,
     @ColumnInfo("deliveredTimestamp") val deliveredTimestamp: String? = null,
     @ColumnInfo("seenTimestamp") val seenTimestamp: String? = null,
-    @ColumnInfo("isSent") var isSent: Boolean?
+    @ColumnInfo("isSent") var isSent: Boolean?,
+    @ColumnInfo("isReadReceiptEnabled") var isReadReceiptEnabled: Boolean?
 ): ComparableMessage()
 
 fun DBMessage.toUIMessage(): UIMessage {

@@ -14,6 +14,16 @@ object UserPreference {
         preferences = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
     }
 
+    fun readReceiptToggle(setEnabled: Boolean) {
+        preferences.edit {
+            putBoolean(READ_RECEIPT_TOGGLE, setEnabled)
+        }
+    }
+
+    fun isReadReceiptEnabled(): Boolean {
+        return preferences.getBoolean(READ_RECEIPT_TOGGLE, true)
+    }
+
     fun storeCutOffDateForMarkingMessagesAsSeen(date: LocalDateTime) {
         preferences.edit {
             putString(CUTOFF_DATE_FOR_MARKING_MESSAGES_AS_SEEN, date.toISOString())
@@ -73,6 +83,7 @@ object UserPreference {
     }
 }
 
+const val READ_RECEIPT_TOGGLE = "read-receipt-toggle"
 const val ACCESS_TOKEN_PREF = "access-token-pref"
 const val USERNAME_PREF = "username-pref"
 const val CUTOFF_DATE_FOR_MARKING_MESSAGES_AS_SEEN = "cut-off date for marking messages as seen"

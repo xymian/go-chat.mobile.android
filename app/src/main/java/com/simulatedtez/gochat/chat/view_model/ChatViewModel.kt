@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
 import com.simulatedtez.gochat.chat.remote.models.Message
 import com.simulatedtez.gochat.chat.interfaces.ChatEventListener
@@ -20,14 +21,11 @@ import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.api_usecases.CreateChatRoomUsecase
 import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
-import com.simulatedtez.gochat.conversations.view.ConversationsScreenActions
 import com.simulatedtez.gochat.remote.client
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 import java.util.LinkedList
@@ -130,8 +128,14 @@ class ChatViewModel(
         }
     }
 
-    fun markMessagesAsSeen(messages: List<Message>) {
-        chatRepo.markMessagesAsSeen(messages)
+    fun markMessagesAsSeenIfEnabled(messages: List<Message>) {
+        if (session.isReadReceiptEnabled) {
+            messages.forEach {
+                if (it.seenTimestamp.isNullOrEmpty()) {
+                    chatRepo.markMessagesAsSeen(it)
+                }
+            }
+        }
     }
 
     fun connectAndSendPendingMessages() {
