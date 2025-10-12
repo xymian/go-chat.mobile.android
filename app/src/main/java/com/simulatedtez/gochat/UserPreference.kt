@@ -14,6 +14,16 @@ object UserPreference {
         preferences = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
     }
 
+    fun canSharePresenceStatus(): Boolean {
+        return preferences.getBoolean(PRESENCE_SHARING_TOGGLE, false)
+    }
+
+    fun presenceSharingToggle(isEnabled: Boolean) {
+        preferences.edit {
+            putBoolean(PRESENCE_SHARING_TOGGLE, isEnabled)
+        }
+    }
+
     fun readReceiptToggle(setEnabled: Boolean) {
         preferences.edit {
             putBoolean(READ_RECEIPT_TOGGLE, setEnabled)
@@ -75,14 +85,9 @@ object UserPreference {
     fun isNewChatHistory(chatRef: String): Boolean {
         return preferences.getBoolean(chatRef, true)
     }
-
-    fun deleteChatHistoryStatus(chatRef: String) {
-        preferences.edit {
-            remove(chatRef)
-        }
-    }
 }
 
+const val PRESENCE_SHARING_TOGGLE = "presence-sharing-toggle"
 const val READ_RECEIPT_TOGGLE = "read-receipt-toggle"
 const val ACCESS_TOKEN_PREF = "access-token-pref"
 const val USERNAME_PREF = "username-pref"

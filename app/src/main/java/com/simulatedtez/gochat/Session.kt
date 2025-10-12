@@ -21,8 +21,17 @@ open class Session private constructor() {
     var isReadReceiptEnabled: Boolean = false
     private set
 
+    var canSharePresenceStatus: Boolean = false
+
     init {
+        UserPreference.getUsername()?.let {
+            saveUsername(it)
+        }
+        UserPreference.getAccessToken()?.let {
+            saveAccessToken(it)
+        }
         isReadReceiptEnabled = UserPreference.isReadReceiptEnabled()
+        canSharePresenceStatus = UserPreference.canSharePresenceStatus()
     }
 
     companion object {
@@ -32,6 +41,11 @@ open class Session private constructor() {
         fun clear() {
             session = object: Session() {}
         }
+    }
+
+    fun setPresenceSharing(isEnabled: Boolean) {
+        UserPreference.presenceSharingToggle(isEnabled)
+        canSharePresenceStatus = isEnabled
     }
 
     fun toggleReadReceipt(isEnabled: Boolean) {
@@ -50,10 +64,12 @@ open class Session private constructor() {
     }
 
     fun saveAccessToken(token: String) {
+        UserPreference.storeAccessToken(token)
         accessToken = token
     }
 
     fun saveUsername(username: String) {
+        UserPreference.storeUsername(username)
         this.username = username
     }
 }

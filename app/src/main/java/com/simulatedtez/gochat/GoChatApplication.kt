@@ -14,12 +14,6 @@ class GoChatApplication: Application(), INetworkMonitor {
     override fun onCreate() {
         super.onCreate()
         UserPreference.init(applicationContext)
-        UserPreference.getUsername()?.let {
-            session.saveUsername(it)
-        }
-        UserPreference.getAccessToken()?.let {
-            session.saveAccessToken(it)
-        }
         session.setupAppWideChatService(AppWideChatEventListener.get(applicationContext))
 
         if (UserPreference.getCutOffDateForMarkingMessagesAsSeen() == null) {

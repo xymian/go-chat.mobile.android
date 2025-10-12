@@ -49,7 +49,7 @@ open class AppWideChatEventListener(
     open val context = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     val userPresenceHelper = UserPresenceHelper(
-        session.appWideChatService,PresenceStatus.AWAY
+        session.appWideChatService,PresenceStatus.AWAY, null
     )
 
     open suspend fun connectToChatService() {

@@ -43,8 +43,6 @@ class LoginRepository(
                                         if (session.username != username) {
                                             cleanupManager.clearUserData()
                                         }
-                                        UserPreference.storeUsername(username)
-                                        UserPreference.storeAccessToken(it.accessToken)
                                         session.saveAccessToken(it.accessToken)
                                         session.saveUsername(username)
 

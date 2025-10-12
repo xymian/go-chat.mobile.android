@@ -50,26 +50,15 @@ class ChatRepository(
     private var chatEventListener: ChatEventListener? = null
     private var chatService = newPrivateChat(chatInfo, this)
 
-    val userPresenceHelper = UserPresenceHelper(chatService, PresenceStatus.ONLINE)
+    val userPresenceHelper = UserPresenceHelper(
+        chatService, PresenceStatus.ONLINE, chatInfo
+    )
 
     val cutOffForMarkingMessagesAsSeen = UserPreference.getCutOffDateForMarkingMessagesAsSeen()
 
     fun connectAndSendPendingMessages() {
         context.launch(Dispatchers.IO) {
             val pendingMessages = mutableListOf<Message>()
-
-            val status = Message(
-                id = UUID.randomUUID().toString(),
-                message = "",
-                sender = chatInfo.username,
-                receiver = chatInfo.recipientsUsernames[0],
-                timestamp = LocalDateTime.now().toISOString(),
-                chatReference = chatInfo.chatReference,
-                ack = false,
-                presenceStatus = "ONLINE"
-            )
-
-            pendingMessages.add(status)
             pendingMessages.addAll(chatDb.getUndeliveredMessages(
                 chatInfo.username, chatInfo.chatReference).toMessages()
             )
@@ -174,6 +163,7 @@ class ChatRepository(
     }
 
     override fun onConnect() {
+        userPresenceHelper.postNewUserPresence(PresenceStatus.ONLINE)
         chatEventListener?.onConnect()
     }
 

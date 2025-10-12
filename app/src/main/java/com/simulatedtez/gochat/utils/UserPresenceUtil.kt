@@ -2,13 +2,16 @@ package com.simulatedtez.gochat.utils
 
 import ChatEngine
 import com.simulatedtez.gochat.Session.Companion.session
+import com.simulatedtez.gochat.chat.models.ChatInfo
 import com.simulatedtez.gochat.chat.models.PresenceStatus
 import com.simulatedtez.gochat.chat.remote.models.Message
 import java.time.LocalDateTime
 import java.util.UUID
 
 open class UserPresenceHelper(
-    private val chatEngine: ChatEngine<Message>?, statusToBeSent: PresenceStatus
+    val chatEngine: ChatEngine<Message>?,
+    statusToBeSent: PresenceStatus,
+    private val chatInfo: ChatInfo?
 ) {
 
     var presenceStatus = statusToBeSent
@@ -31,26 +34,45 @@ open class UserPresenceHelper(
     }
 
     fun postNewUserPresence(presenceStatus: PresenceStatus) {
-        this.presenceStatus = presenceStatus
-        presenceId = UUID.randomUUID().toString()
-        session.lastActiveChat?.let {
-            postPresence(presenceStatus, it.chatReference)
+        if (session.canSharePresenceStatus) {
+            this.presenceStatus = presenceStatus
+            presenceId = UUID.randomUUID().toString()
+            postPresence(presenceStatus)
         }
     }
 
     fun postPresence(presenceStatus: PresenceStatus, chatRef: String) {
-        this.presenceStatus = presenceStatus
-        val message = Message(
-            id = presenceId,
-            message = "",
-            sender = session.username,
-            receiver = "",
-            timestamp = LocalDateTime.now().toISOString(),
-            chatReference = chatRef,
-            ack = false,
-            presenceStatus = presenceStatus.name
-        )
-        chatEngine?.sendMessage(message)
+        if (session.canSharePresenceStatus) {
+            this.presenceStatus = presenceStatus
+            val message = Message(
+                id = presenceId,
+                message = "",
+                sender = session.username,
+                receiver = chatInfo?.recipientsUsernames[0] ?: "",
+                timestamp = LocalDateTime.now().toISOString(),
+                chatReference = chatRef,
+                ack = false,
+                presenceStatus = presenceStatus.name
+            )
+            chatEngine?.sendMessage(message)
+        }
+    }
+
+    private fun postPresence(presenceStatus: PresenceStatus) {
+        if (session.canSharePresenceStatus) {
+            this.presenceStatus = presenceStatus
+            val message = Message(
+                id = presenceId,
+                message = "",
+                sender = chatInfo?.username ?: session.username,
+                receiver = chatInfo?.recipientsUsernames[0] ?: "",
+                timestamp = LocalDateTime.now().toISOString(),
+                chatReference = chatInfo?.chatReference ?: "",
+                ack = false,
+                presenceStatus = presenceStatus.name
+            )
+            chatEngine?.sendMessage(message)
+        }
     }
 
     fun onPresenceSent(id: String) {
