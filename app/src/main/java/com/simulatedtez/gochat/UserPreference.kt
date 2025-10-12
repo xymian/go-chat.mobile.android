@@ -15,7 +15,7 @@ object UserPreference {
     }
 
     fun canSharePresenceStatus(): Boolean {
-        return preferences.getBoolean(PRESENCE_SHARING_TOGGLE, false)
+        return preferences.getBoolean(PRESENCE_SHARING_TOGGLE, true)
     }
 
     fun presenceSharingToggle(isEnabled: Boolean) {
