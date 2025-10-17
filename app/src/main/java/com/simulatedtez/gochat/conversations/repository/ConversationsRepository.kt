@@ -178,6 +178,7 @@ class ConversationsRepository(
         }
 
         MessageStatus.getType(message.messageStatus)?.let {
+            conversationEventListener?.onReceiveRecipientMessageStatus(message.chatReference, it)
             return
         }
 

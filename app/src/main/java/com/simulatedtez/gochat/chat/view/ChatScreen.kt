@@ -167,7 +167,7 @@ fun NavController.ChatScreen(chatInfo: ChatInfo) {
                 delay(1000L)
                 chatViewModel.countdownTypingTimeBy(1)
             } else {
-                delay(2000L)
+                delay(1000L)
                 if (chatViewModel.isTyping) {
                     chatViewModel.restartTypingTimer(chatViewModel.newCharCount)
                 } else {
@@ -403,7 +403,6 @@ fun TypingIndicatorBubble() {
 fun TypingDot(delay: Dp, bounce: Float) {
     var yOffset by remember { mutableFloatStateOf(0f) }
 
-    // Use LaunchedEffect to apply animation with delay
     LaunchedEffect(bounce) {
         delay(delay.value.toLong())
         yOffset = bounce

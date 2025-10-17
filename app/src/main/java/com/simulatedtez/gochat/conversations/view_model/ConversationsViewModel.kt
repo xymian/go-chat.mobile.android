@@ -9,8 +9,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.simulatedtez.gochat.Session.Companion.session
 import com.simulatedtez.gochat.chat.database.ChatDatabase
+import com.simulatedtez.gochat.chat.models.MessageStatus
 import com.simulatedtez.gochat.chat.remote.api_services.ChatApiService
 import com.simulatedtez.gochat.chat.remote.models.Message
+import com.simulatedtez.gochat.chat.remote.models.toUIMessage
 import com.simulatedtez.gochat.conversations.ConversationDatabase
 import com.simulatedtez.gochat.conversations.DBConversation
 import com.simulatedtez.gochat.conversations.interfaces.ConversationEventListener
@@ -54,6 +56,9 @@ class ConversationsViewModel(
 
     private val _isConnected = MutableLiveData<Boolean>()
     val isConnected: LiveData<Boolean> = _isConnected
+
+    private val _isUserTyping = MutableLiveData<Pair<String, Boolean>>()
+    val isUserTyping: LiveData<Pair<String, Boolean>> = _isUserTyping
 
     private val receivedMessagesQueue: Queue<Message> = LinkedList()
 
@@ -141,7 +146,17 @@ class ConversationsViewModel(
         }
     }
 
+    override fun onReceiveRecipientMessageStatus(chatRef: String, messageStatus: MessageStatus) {
+        when (messageStatus) {
+            MessageStatus.TYPING -> {
+                _isUserTyping.value = chatRef to true
+            }
+            else -> _isUserTyping.value = chatRef to false
+        }
+    }
+
     override fun onReceive(message: Message) {
+        _isUserTyping.value = message.chatReference to false
         viewModelScope.launch(Dispatchers.Default) {
             if (receivedMessagesQueue.isEmpty()) {
                 receivedMessagesQueue.add(message)

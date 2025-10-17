@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -92,6 +93,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
     val newConversation by viewModel.newConversation.collectAsState(null)
     val conversationHistory by viewModel.conversations.observeAsState(listOf())
     val errorMessage by viewModel.errorMessage.observeAsState()
+    val isUserTyping by viewModel.isUserTyping.observeAsState()
 
     val isConnected by viewModel.isConnected.observeAsState()
 
@@ -201,7 +203,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
                 .padding(paddingValues)
         ) {
             items(conversations) { chat ->
-                ChatItem(chat = chat, screenActions)
+                ChatItem(chat = chat, isUserTyping, screenActions)
             }
         }
     }
@@ -222,7 +224,7 @@ fun NavController.ConversationsScreen(screenActions: ConversationsScreenActions)
 }
 
 @Composable
-fun ChatItem(chat: DBConversation, screenActions: ConversationsScreenActions) {
+fun ChatItem(chat: DBConversation, typingUser: Pair<String, Boolean>?, screenActions: ConversationsScreenActions) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -257,11 +259,21 @@ fun ChatItem(chat: DBConversation, screenActions: ConversationsScreenActions) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
-            Text(
-                text = chat.lastMessage,
-                color = Color.Gray,
-                maxLines = 1
-            )
+            if (typingUser?.first == chat.chatReference && typingUser.second) {
+                Text(
+                    text = "typing...",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Text(
+                    text = chat.lastMessage,
+                    color = Color.Gray,
+                    maxLines = 1
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))

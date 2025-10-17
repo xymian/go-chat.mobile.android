@@ -37,7 +37,7 @@ class ChatViewModel(
 ): ViewModel(), ChatEventListener {
 
     companion object {
-        const val TYPING_TOTAL_TIME = 3
+        const val TYPING_TOTAL_TIME = 1
     }
 
     private val _isUserTyping = MutableLiveData(false)
@@ -175,7 +175,7 @@ class ChatViewModel(
         _recipientStatus.value = presenceStatus
     }
 
-    override fun onReceiveRecipientMessageStatus(messageStatus: MessageStatus) {
+    override fun onReceiveRecipientMessageStatus(chatRef: String, messageStatus: MessageStatus) {
         when (messageStatus) {
             MessageStatus.TYPING -> {
                 _isUserTyping.value = true

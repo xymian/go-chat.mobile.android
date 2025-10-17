@@ -222,7 +222,7 @@ class ChatRepository(
 
         MessageStatus.getType(message.messageStatus)?.let {
             context.launch(Dispatchers.Main) {
-                chatEventListener?.onReceiveRecipientMessageStatus(it)
+                chatEventListener?.onReceiveRecipientMessageStatus(message.chatReference,it)
             }
             return
         }
