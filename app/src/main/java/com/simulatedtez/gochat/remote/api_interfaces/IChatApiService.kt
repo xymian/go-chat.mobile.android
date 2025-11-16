@@ -1,0 +1,11 @@
+package com.simulatedtez.gochat.remote.api_interfaces
+
+import com.simulatedtez.gochat.remote.api_usecases.CreateChatRoomParams
+import com.simulatedtez.gochat.remote.api_usecases.CreateConversationsParams
+import com.simulatedtez.gochat.remote.IResponse
+import com.simulatedtez.gochat.remote.ParentResponse
+
+interface IChatApiService {
+    suspend fun createChatRoom(params: CreateChatRoomParams): IResponse<ParentResponse<String>>
+    suspend fun createConversations(params: CreateConversationsParams): IResponse<ParentResponse<String>>
+}

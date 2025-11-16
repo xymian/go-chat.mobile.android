@@ -2,9 +2,9 @@ package com.simulatedtez.gochat
 
 import android.app.Application
 import com.simulatedtez.gochat.Session.Companion.session
-import com.simulatedtez.gochat.utils.AppWideChatEventListener
-import com.simulatedtez.gochat.utils.INetworkMonitor
-import com.simulatedtez.gochat.utils.NetworkMonitor
+import com.simulatedtez.gochat.util.AppWideChatEventListener
+import com.simulatedtez.gochat.util.INetworkMonitor
+import com.simulatedtez.gochat.util.NetworkMonitor
 import java.time.LocalDateTime
 
 class GoChatApplication: Application(), INetworkMonitor {

@@ -4,10 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.simulatedtez.gochat.chat.database.DBMessage
-import com.simulatedtez.gochat.chat.database.MessagesDao
-import com.simulatedtez.gochat.conversations.ConversationDao
-import com.simulatedtez.gochat.conversations.DBConversation
 
 @Database(
     entities = [DBMessage::class, DBConversation::class],

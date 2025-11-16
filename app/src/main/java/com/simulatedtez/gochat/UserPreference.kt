@@ -3,7 +3,7 @@ package com.simulatedtez.gochat
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import com.simulatedtez.gochat.utils.toISOString
+import com.simulatedtez.gochat.util.toISOString
 import java.time.LocalDateTime
 
 object UserPreference {

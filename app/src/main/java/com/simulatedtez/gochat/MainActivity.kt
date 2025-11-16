@@ -11,29 +11,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.simulatedtez.gochat.Session.Companion.session
-import com.simulatedtez.gochat.auth.view.AuthScreens
-import com.simulatedtez.gochat.auth.view.LoginScreen
-import com.simulatedtez.gochat.auth.view.SignupScreen
-import com.simulatedtez.gochat.chat.ChatScreens
-import com.simulatedtez.gochat.chat.models.ChatInfo
-import com.simulatedtez.gochat.chat.models.PresenceStatus
-import com.simulatedtez.gochat.chat.view.ChatScreen
-import com.simulatedtez.gochat.conversations.view.ConversationsScreen
-import com.simulatedtez.gochat.conversations.view.ConversationsScreenActions
+import com.simulatedtez.gochat.model.enums.AuthScreens
+import com.simulatedtez.gochat.view.LoginScreen
+import com.simulatedtez.gochat.view.SignupScreen
+import com.simulatedtez.gochat.model.enums.ChatScreens
+import com.simulatedtez.gochat.model.ChatInfo
+import com.simulatedtez.gochat.model.enums.PresenceStatus
+import com.simulatedtez.gochat.view.ChatScreen
+import com.simulatedtez.gochat.view.ConversationsScreen
+import com.simulatedtez.gochat.view.ConversationsScreenActions
 import com.simulatedtez.gochat.ui.theme.GoChatTheme
 import com.simulatedtez.gochat.view_model.AppViewModel
 import com.simulatedtez.gochat.view_model.AppViewModelProvider
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
